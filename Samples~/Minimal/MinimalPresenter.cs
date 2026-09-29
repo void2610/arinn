@@ -19,13 +19,13 @@ namespace Void2610.Arinn.Samples
         private readonly CompositeDisposable _disposables = new();
         private InputAction _cancel;
 
-        public MinimalPresenter(UIFocusManager focusManager, MenuScreen menu, SettingsWindow settings, InventoryWindow inventory, ConfirmDialog dialog)
+        public MinimalPresenter(UIFocusManager focusManager)
         {
             _focusManager = focusManager;
-            _menu = menu;
-            _settings = settings;
-            _inventory = inventory;
-            _dialog = dialog;
+            _menu = UnityEngine.Object.FindFirstObjectByType<MenuScreen>();
+            _settings = UnityEngine.Object.FindFirstObjectByType<SettingsWindow>();
+            _inventory = UnityEngine.Object.FindFirstObjectByType<InventoryWindow>();
+            _dialog = UnityEngine.Object.FindFirstObjectByType<ConfirmDialog>();
         }
 
         public void Start()
