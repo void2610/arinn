@@ -1,0 +1,28 @@
+{
+    "name": "Void2610.Arinn.LiminalPalette",
+    "rootNamespace": "Void2610.Arinn",
+    "references": [
+        "Void2610.Arinn",
+        "Void2610.LiminalPalette",
+        "UnityEngine.UI",
+        "VContainer"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_EDITOR || DEVELOPMENT_BUILD",
+        "ARINN_LIMINAL_PALETTE"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.void2610.liminal-palette",
+            "expression": "",
+            "define": "ARINN_LIMINAL_PALETTE"
+        }
+    ],
+    "noEngineReferences": false
+}

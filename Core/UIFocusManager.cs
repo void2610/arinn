@@ -32,6 +32,25 @@ namespace Void2610.Arinn
         public WindowBase TopWindow => _windowStack.Count > 0 ? _windowStack[^1].Window : null;
 
         /// <summary>
+        /// 開いているウィンドウの数。
+        /// </summary>
+        public int WindowCount => _windowStack.Count;
+
+        /// <summary>
+        /// フォーカスが、最前面のウィンドウ（なければ基底画面）の既定要素にあるか。
+        /// </summary>
+        public bool IsFocusOnDefaultElement
+        {
+            get
+            {
+                var selected = CurrentSelected;
+                if (!selected) return false;
+                IFocusSource source = TopWindow ? TopWindow : BaseFocusSource;
+                return selected == GetDefaultFocusElement(source);
+            }
+        }
+
+        /// <summary>
         /// 常時表示 UI にフォーカスを借りている最中か。
         /// </summary>
         public bool IsInPersistentUIMode { get; private set; }
