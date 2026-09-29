@@ -34,6 +34,10 @@ namespace Void2610.Arinn
 
         internal IFrameClock Clock { get; set; } = UnityFrameClock.Instance;
 
+        // EditMode では GraphicRaycaster が画面座標で当たらないため、テストで当たり判定を差し替える
+        internal Action<EventSystem, PointerEventData, List<RaycastResult>> Raycaster { get; set; } =
+            static (eventSystem, pointerData, results) => eventSystem.RaycastAll(pointerData, results);
+
         private readonly UIFocusManager _focusManager;
         private readonly Dictionary<IFocusSource, NavigationScope> _scopes = new();
         private readonly Dictionary<WindowBase, NavigationScope> _implicitScopes = new();
@@ -253,7 +257,7 @@ namespace Void2610.Arinn
         {
             var pointerData = new PointerEventData(eventSystem) { position = position };
             _raycastResults.Clear();
-            eventSystem.RaycastAll(pointerData, _raycastResults);
+            Raycaster(eventSystem, pointerData, _raycastResults);
 
             foreach (var result in _raycastResults)
             {
