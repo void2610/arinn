@@ -39,7 +39,7 @@ namespace Void2610.Arinn.Samples
 
         protected override void Awake()
         {
-            // prefab-view の規約の例外。Import するだけで動くよう、普通はシーンに置く EventSystem と UI をコンテナを組む前にコードで作る
+            // Import するだけで動くよう、普通はシーンに置く EventSystem と UI をコンテナを組む前にコードで作る
             EnsureEventSystem();
             BuildUI();
             base.Awake();

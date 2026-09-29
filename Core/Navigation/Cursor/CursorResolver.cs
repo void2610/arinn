@@ -57,7 +57,7 @@ namespace Void2610.Arinn
 
         private static VirtualCursorAnchor CreateAnchor(RectTransform area)
         {
-            // prefab-view の規約の例外。見た目を持たない内部のオブジェクトで、利用側に置かせるとマーカーコンポーネントになるため
+            // 見た目を持たない内部のオブジェクトなので、利用側の Prefab に置かせずここで作る
             var go = new GameObject("VirtualCursorAnchor", typeof(RectTransform));
             var rect = (RectTransform)go.transform;
             rect.SetParent(area, false);
