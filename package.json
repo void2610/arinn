@@ -8,6 +8,8 @@
     "name": "void2610"
   },
   "license": "MIT",
+  "documentationUrl": "https://github.com/void2610/arinn/blob/main/Documentation~/tutorial.md",
+  "changelogUrl": "https://github.com/void2610/arinn/blob/main/CHANGELOG.md",
   "samples": [
     {
       "displayName": "Minimal",

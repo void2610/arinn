@@ -1,0 +1,46 @@
+# Changelog
+
+## [Unreleased]
+
+最初の公開に向けた版。
+「庭小人の庭」の UIFocusManager と WindowBase、void-red の SafeNavigationManager と BaseWindowView を統合して切り出した。
+
+### Added
+
+#### フォーカスとウィンドウ
+
+- `UIFocusManager`：ウィンドウのスタック、開く前のフォーカスの預かりと返却、フォーカスが消えたときの復帰。インスタンスとして生成でき、`Instance` はロケータとして残す
+- `WindowBase`：CanvasGroup で表示と入力の受付を切り替える基底クラス。閉じ始めた時点で入力を切る。既定要素と閉じるボタンはコードでも指定できる
+- `IFocusSource`：ウィンドウと基底画面に共通の、既定要素を返す窓口。`SwitchBase` / `SetBaseFocusSource` で基底画面を設定する
+- 常時表示 UI へのフォーカスの貸し借り（`EnterPersistentUIFocus` / `ExitPersistentUIFocus` / `TogglePersistentUIFocus`）
+- Cancel の部品（`TryCloseTopWindow` / `TryPopScope`）と、入力でウィンドウを開閉する `RegisterToggleAction`
+- 拡張点：`IInputScopeGate`（ゲームプレイ入力の停止）、`ISubmitHoldProbe`（決定の押下）、`IWindowTransition`（開閉の演出）
+- 観測用のプロパティ `WindowCount` / `IsFocusOnDefaultElement`
+
+#### ナビゲーション
+
+- `NavigationController`：今のスコープ（最前面のウィンドウ、なければ基底画面）の中だけから移動先を決める。EventSystem の move を止めて自前で解決するので、ウィンドウの背面の UI へ飛ばない
+- `NavigationScope`：スコープの根、端の挙動（`EdgePolicy.Stop` / `Exit` / `WrapRow`）、候補の除外、選択に合わせたスクロール、解決器の差し替えをコードで宣言する
+- スコープを登録していないウィンドウには、ウィンドウの transform を根とする既定のスコープを使う
+- `SpatialResolver` と `DirectionalResolver`：入力の時点の RectTransform の位置から移動先を決める
+- `DirectionRepeater`：移動入力を 4 方向へ丸め、押し続けたときにリピートする
+- `SetMoveBlocker`：修飾ボタン（LB など）を押している間の方向入力を移動として扱わない
+- `SelectionChanged`：選択の変化を、方向入力、ホバー、それ以外に分けて通知する
+- `ScrollIntoView`：選択した要素が見える位置まで ScrollRect を動かす
+- ホバー選択（`EnableHoverSelection`）：ポインタが動いたときだけ選び、スコープの外は選ばない
+- 仮想カーソル：`GridCursor` / `ListCursor` / `CursorResolver`。フォーカスはライブラリ内部のアンカーが受ける
+- 拡張点：`INavigationInput`（方向入力）、`IPointerPositionSource`（ポインタの位置）、`INavigationResolver`（移動先の決め方）
+
+#### 任意のアセンブリ
+
+- `Void2610.Arinn.InputSystem`：`InputSystemNavigationInput` / `InputSystemPointerPosition` / `InputSystemSubmitHoldProbe` と、まとめて設定する `UseInputSystem`
+- `Void2610.Arinn.LitMotion`：`FadeWindowTransition`
+- `Void2610.Arinn.LiminalPalette`：`Arinn/*` の観測コマンド（Editor と Development Build のみ）
+- VContainer への登録（`RegisterArinn` / `RegisterArinnNavigation`）
+
+#### ドキュメントとサンプル
+
+- チュートリアル（`Documentation~/tutorial.md`）と、既存プロジェクトからの移行ガイド（`Documentation~/migration.md`）
+- サンプル `Minimal`：基底画面、ウィンドウ 2 枚（スクロール一覧と仮想カーソルのグリッド）、確認ダイアログをコードだけで組み立てる
+- EditMode テストと、Input System 連携の PlayMode テスト
+- CI（GitHub Actions）：EditMode と PlayMode のテストを回し、サンプルを Assets へ写してコンパイルを確かめる
