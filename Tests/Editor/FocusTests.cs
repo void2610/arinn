@@ -318,14 +318,79 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
-        public void 既定要素の取得が例外を投げても次のフレームからは投げ直さない()
+        public void 既定要素の取得が例外を投げてもフォーカスを動かさずに進む()
         {
+            var before = Create("Before");
+            EventSystem.SetSelectedGameObject(before);
             var window = CreateWindow("A");
             window.ThrowsOnDefault = true;
             Manager.ShowWindow(window);
 
-            Assert.Throws<System.InvalidOperationException>(NextFrame);
             Assert.DoesNotThrow(NextFrame);
+            Assert.DoesNotThrow(NextFrame);
+            Assert.That(Selected, Is.EqualTo(before));
+        }
+
+        [Test]
+        public void 閉じる途中で既定要素の取得が例外を投げてもウィンドウは閉じきる()
+        {
+            var a = CreateWindow("A");
+            Manager.ShowWindow(a);
+            NextFrame();
+            var inner = Create("A/Inner");
+            EventSystem.SetSelectedGameObject(inner);
+            var b = CreateWindow("B");
+            Manager.ShowWindow(b);
+            NextFrame();
+            inner.SetActive(false);
+            a.ThrowsOnDefault = true;
+
+            Assert.DoesNotThrow(() => Manager.HideWindow(b));
+
+            Assert.That(b.IsVisible, Is.False);
+            Assert.That(Manager.TopWindow, Is.EqualTo(a));
+        }
+
+        [Test]
+        public void 押せないだけの要素にも閉じたあとでフォーカスを戻す()
+        {
+            var disabled = CreateButton("Disabled", CreateRoot("Root"), Vector2.zero);
+            disabled.interactable = false;
+            EventSystem.SetSelectedGameObject(disabled.gameObject);
+            var window = CreateWindow("A");
+            Manager.ShowWindow(window);
+            NextFrame();
+
+            Manager.HideWindow(window);
+
+            Assert.That(Selected, Is.EqualTo(disabled.gameObject));
+        }
+
+        [Test]
+        public void 常時表示UIから戻るとき借りる前の要素が消えていれば既定要素へ戻す()
+        {
+            var baseScreen = CreateBase("Base");
+            Manager.SetBaseFocusSource(baseScreen);
+            var before = Create("Before");
+            EventSystem.SetSelectedGameObject(before);
+            Manager.EnterPersistentUIFocus(Create("Persistent"));
+            NextFrame();
+            before.SetActive(false);
+
+            Manager.ExitPersistentUIFocus();
+
+            Assert.That(Selected, Is.EqualTo(baseScreen.Default));
+        }
+
+        [Test]
+        public void SwitchBaseで常時表示UIのフォーカスを借りている状態も捨てる()
+        {
+            Manager.EnterPersistentUIFocus(Create("Persistent"));
+            NextFrame();
+
+            Manager.SwitchBase(CreateBase("Next"));
+
+            Assert.That(Manager.IsInPersistentUIMode, Is.False);
         }
 
         [Test]

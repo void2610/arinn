@@ -251,7 +251,8 @@ namespace Void2610.Arinn
             // 閉じたウィンドウの購読側が開き直した場合は、そのウィンドウのフォーカスを奪わない
             if (HasOpenWindows) return;
             _pendingFocus = null;
-            _pendingPersistentFocus = null;
+            // 前の画面で借りていた常時表示 UI のフォーカスは、新しい画面では意味を持たない
+            ClearPersistentUIFocus();
             FocusWhenActive(GetDefaultFocusElement(source));
         }
 
@@ -294,11 +295,11 @@ namespace Void2610.Arinn
         {
             if (!IsInPersistentUIMode) return;
 
-            IsInPersistentUIMode = false;
-            _pendingPersistentFocus = null;
-            if (IsFocusable(_persistentFocusPrevious)) SetSelected(_persistentFocusPrevious);
-            _persistentFocusPrevious = null;
-            _persistentFocusOwner = null;
+            var previous = _persistentFocusPrevious;
+            ClearPersistentUIFocus();
+            // 借りる前の要素が消えていたら、最前面のウィンドウ（なければ基底画面）の既定要素へ戻す
+            if (IsFocusable(previous)) SetSelected(previous);
+            else SetSelected(GetDefaultFocusElement(TopWindow ? TopWindow : BaseFocusSource));
         }
 
         /// <summary>
@@ -462,6 +463,14 @@ namespace Void2610.Arinn
             SetSelected(GetDefaultFocusElement(source));
         }
 
+        private void ClearPersistentUIFocus()
+        {
+            IsInPersistentUIMode = false;
+            _pendingPersistentFocus = null;
+            _persistentFocusPrevious = null;
+            _persistentFocusOwner = null;
+        }
+
         private void OnActiveSceneChanged(Scene current, Scene next)
         {
             // 前のシーンの UI への参照を捨て、新しいシーンで登録し直してもらう
@@ -483,7 +492,8 @@ namespace Void2610.Arinn
         private static bool IsFocusable(GameObject target)
         {
             if (!target || !target.activeInHierarchy) return false;
-            return !target.TryGetComponent<Selectable>(out var selectable) || selectable.IsInteractable();
+            // 売り切れの商品のように押せないだけの要素へは戻す（候補に含める画面があるため）。閉じたウィンドウの中は CanvasGroup で弾く
+            return !target.TryGetComponent<Selectable>(out _) || UnityObjects.GroupsAllowInteraction(target.transform);
         }
 
         private static void SetSelected(GameObject target)
