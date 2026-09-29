@@ -19,18 +19,25 @@ namespace Void2610.Arinn.Samples
         private static readonly Color LockedColor = new(0.1f, 0.1f, 0.12f);
         private static readonly Color CursorColor = new(0.85f, 0.55f, 0.15f);
 
+        /// <summary>
+        /// カーソルのマスで決定した。
+        /// </summary>
+        public Observable<Vector2Int> OnSlotSubmitted => _cursor.OnSubmitted.Select(_ => _cursor.Position);
+
         private readonly CompositeDisposable _disposables = new();
         private Image[,] _cells;
         private GridCursor _cursor;
         private CursorResolver _resolver;
         private Text _caption;
 
-        public static InventoryWindow Create(Transform parent, NavigationController navigation, ConfirmDialog dialog)
+        public static InventoryWindow Create(Transform parent)
         {
             var (window, panel) = SampleUI.CreateWindow<InventoryWindow>("InventoryWindow", parent, new Vector2(760f, 640f), "持ち物");
-            window.Build(panel, navigation, dialog);
+            window.Build(panel);
             return window;
         }
+
+        public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope().UseResolver(_resolver);
 
         protected override void OnDestroy()
         {
@@ -39,7 +46,7 @@ namespace Void2610.Arinn.Samples
             base.OnDestroy();
         }
 
-        private void Build(RectTransform panel, NavigationController navigation, ConfirmDialog dialog)
+        private void Build(RectTransform panel)
         {
             var pitch = CELL_SIZE + CELL_SPACING;
             var area = SampleUI.CreateRect("Grid", panel, new Vector2(0f, 30f), new Vector2(COLUMNS * pitch, ROWS * pitch));
@@ -63,18 +70,10 @@ namespace Void2610.Arinn.Samples
                 .OnEdge(NavigationDirection.Down, EdgePolicy.Exit(close));
             _cursor.OnMoved.Subscribe(_ => Refresh()).AddTo(_disposables);
             _cursor.OnFocusChanged.Subscribe(_ => Refresh()).AddTo(_disposables);
-            _cursor.OnSubmitted
-                .Subscribe(_ =>
-                {
-                    var cell = _cursor.Position;
-                    dialog.Open($"マス ({cell.x}, {cell.y}) の道具を捨てますか？", () => Debug.Log($"[arinn sample] ({cell.x}, {cell.y}) を捨てた"));
-                })
-                .AddTo(_disposables);
 
             // アンカーは Grid の全面に置かれるので、閉じるボタンから上へ押すとカーソルへ戻れる
             _resolver = new CursorResolver(_cursor, area);
             SetDefaultFocusElement(_resolver.Anchor);
-            navigation.Register(this, new NavigationScope(transform).UseResolver(_resolver));
             Refresh();
         }
 
