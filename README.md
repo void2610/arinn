@@ -245,7 +245,10 @@ Package Manager の arinn のページの Samples から **Minimal** を Import 
 このリポジトリでは、Unity のエディタを起動せずに dotnet でコンパイルだけを確かめる（`.ci/compile/build.sh`）。
 Unity の型は非公式のリファレンスアセンブリ（NuGet の `Digitalroot.References.Unity`）から取り、uGUI と依存ライブラリはソースを取ってきて一緒にビルドする。
 `Samples~` は Unity がコンパイルしないので、サンプルの型の崩れはここで検出する。
+同じスクリプトで、庭小人と共通のコーディング規約（[unity-coding-standards](https://github.com/void2610/unity-coding-standards) のアナライザと `.editorconfig`）の検査も回す（庭小人の `run-format.sh --verify-no-changes` と同じ順）。
+違反を直すときは、`build.sh` の末尾の `dotnet format` から `--verify-no-changes` を外して同じ順に回す。
 GitHub Actions（`.github/workflows/compile.yml`）でも同じスクリプトを回すので、Secrets の登録は要らない。
+SDK は `.ci/compile/global.json` で 8 に固定している（新しい SDK の `dotnet format` は判定が変わるため）。
 
 ```sh
 .ci/compile/build.sh   # dotnet 8 の SDK が要る
