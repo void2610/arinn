@@ -1,0 +1,19 @@
+{
+    "name": "Void2610.Arinn",
+    "rootNamespace": "Void2610.Arinn",
+    "references": [
+        "UniTask",
+        "R3.Unity",
+        "VContainer",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

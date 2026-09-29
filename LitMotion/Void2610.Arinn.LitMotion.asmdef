@@ -1,0 +1,26 @@
+{
+    "name": "Void2610.Arinn.LitMotion",
+    "rootNamespace": "Void2610.Arinn",
+    "references": [
+        "Void2610.Arinn",
+        "LitMotion",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "ARINN_LITMOTION"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.annulusgames.lit-motion",
+            "expression": "",
+            "define": "ARINN_LITMOTION"
+        }
+    ],
+    "noEngineReferences": false
+}

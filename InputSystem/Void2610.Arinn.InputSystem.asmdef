@@ -1,0 +1,25 @@
+{
+    "name": "Void2610.Arinn.InputSystem",
+    "rootNamespace": "Void2610.Arinn",
+    "references": [
+        "Void2610.Arinn",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "ARINN_INPUT_SYSTEM"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.inputsystem",
+            "expression": "",
+            "define": "ARINN_INPUT_SYSTEM"
+        }
+    ],
+    "noEngineReferences": false
+}
