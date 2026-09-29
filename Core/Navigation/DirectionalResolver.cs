@@ -61,6 +61,11 @@ namespace Void2610.Arinn
             return best;
         }
 
+        private static bool IsVertical(NavigationDirection direction)
+        {
+            return direction is NavigationDirection.Up or NavigationDirection.Down;
+        }
+
         // 進行方向に沿った中心間の距離（方向の反対側なら負）
         private static float PrimaryDistance(Rect from, Rect to, NavigationDirection direction)
         {
@@ -89,8 +94,5 @@ namespace Void2610.Arinn
                 : Mathf.Min(a.yMax, b.yMax) - Mathf.Max(a.yMin, b.yMin);
             return overlap > MIN_PRIMARY_DISTANCE;
         }
-
-        private static bool IsVertical(NavigationDirection direction) =>
-            direction is NavigationDirection.Up or NavigationDirection.Down;
     }
 }

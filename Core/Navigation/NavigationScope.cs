@@ -45,6 +45,31 @@ namespace Void2610.Arinn
         }
 
         /// <summary>
+        /// 指定方向の端での挙動。
+        /// </summary>
+        public EdgePolicy GetEdge(NavigationDirection direction) => _edges.Get(direction);
+
+        /// <summary>
+        /// 要素がこのスコープの範囲内か。
+        /// </summary>
+        public bool Contains(Selectable selectable) => selectable && Contains(selectable.transform);
+
+        /// <summary>
+        /// オブジェクトがこのスコープの範囲内か。
+        /// </summary>
+        public bool Contains(GameObject target) => target && Contains(target.transform);
+
+        /// <summary>
+        /// current から direction へ移動した先を返す。移動先が無ければ（端で止まる場合や解決器が内部で処理した場合を含む）null。
+        /// </summary>
+        public Selectable Resolve(Selectable current, NavigationDirection direction) => ResolvesMove && Resolver != null ? Resolver.Resolve(this, current, direction) : null;
+
+        /// <summary>
+        /// 選択先にできる要素か。アクティブで、操作でき、RectTransform を持つこと。
+        /// </summary>
+        public static bool IsNavigable(Selectable selectable) => selectable && selectable.isActiveAndEnabled && selectable.IsInteractable() && selectable.transform is RectTransform;
+
+        /// <summary>
         /// 解決器を差し替える。仮想カーソルを使う画面では <see cref="CursorResolver"/> を渡す。
         /// </summary>
         public NavigationScope UseResolver(INavigationResolver resolver)
@@ -81,27 +106,6 @@ namespace Void2610.Arinn
         }
 
         /// <summary>
-        /// 指定方向の端での挙動。
-        /// </summary>
-        public EdgePolicy GetEdge(NavigationDirection direction) => _edges.Get(direction);
-
-        /// <summary>
-        /// 要素がこのスコープの範囲内か。
-        /// </summary>
-        public bool Contains(Selectable selectable) => selectable && Contains(selectable.transform);
-
-        /// <summary>
-        /// オブジェクトがこのスコープの範囲内か。
-        /// </summary>
-        public bool Contains(GameObject target) => target && Contains(target.transform);
-
-        /// <summary>
-        /// current から direction へ移動した先を返す。移動先が無ければ（端で止まる場合や解決器が内部で処理した場合を含む）null。
-        /// </summary>
-        public Selectable Resolve(Selectable current, NavigationDirection direction) =>
-            ResolvesMove && Resolver != null ? Resolver.Resolve(this, current, direction) : null;
-
-        /// <summary>
         /// 移動先の候補を集める。Root の配下で、操作でき、除外に当てはまらない要素。
         /// Scrollbar はドラッグ操作用でカーソル移動の対象にしない。
         /// </summary>
@@ -130,13 +134,10 @@ namespace Void2610.Arinn
             return target && target != current && Contains(target) && IsNavigable(target) ? target : null;
         }
 
-        /// <summary>
-        /// 選択先にできる要素か。アクティブで、操作でき、RectTransform を持つこと。
-        /// </summary>
-        public static bool IsNavigable(Selectable selectable) =>
-            selectable && selectable.isActiveAndEnabled && selectable.IsInteractable() && selectable.transform is RectTransform;
-
-        private bool Contains(Transform target) => Root && target.IsChildOf(Root);
+        private bool Contains(Transform target)
+        {
+            return Root && target.IsChildOf(Root);
+        }
 
         private bool IsExcluded(Selectable selectable)
         {

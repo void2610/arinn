@@ -78,6 +78,14 @@ namespace Void2610.Arinn
         public virtual NavigationScope CreateNavigationScope() => new(transform);
 
         /// <summary>
+        /// 既定のフォーカス要素をコードで指定する。<see cref="DefaultFocusElement"/> をオーバーライドしていればそちらが優先される。
+        /// </summary>
+        protected void SetDefaultFocusElement(Selectable selectable)
+        {
+            defaultFocusElement = selectable;
+        }
+
+        /// <summary>
         /// 表示と入力の受付を開いた状態にする。外からは <see cref="Open"/> を使う。
         /// </summary>
         protected internal virtual void Show()
@@ -113,36 +121,24 @@ namespace Void2610.Arinn
             BindCloseButton(button);
         }
 
-        /// <summary>
-        /// 既定のフォーカス要素をコードで指定する。<see cref="DefaultFocusElement"/> をオーバーライドしていればそちらが優先される。
-        /// </summary>
-        protected void SetDefaultFocusElement(Selectable selectable) => defaultFocusElement = selectable;
-
-        protected virtual void Awake()
-        {
-            SetVisibleImmediate(false);
-            // 派生の Awake が先に SetCloseButton していても二重に購読しない
-            if (!_boundCloseButton) BindCloseButton(closeButton);
-        }
-
-        protected virtual void OnDestroy()
-        {
-            _destroyed = true;
-            CancelTransition();
-            BindCloseButton(null);
-            _onWindowClosed.Dispose();
-        }
-
         // VContainer に登録したウィンドウは、コンテナの UIFocusManager を使う
         [Inject]
-        private void InjectFocusManager(UIFocusManager focusManager) => _focusManager = focusManager;
+        private void InjectFocusManager(UIFocusManager focusManager)
+        {
+            _focusManager = focusManager;
+        }
+
+        private void OnCloseButtonClicked()
+        {
+            FocusManager?.HideWindow(this);
+        }
+
+        private UIFocusManager RequireManager()
+        {
+            return FocusManager ?? throw new InvalidOperationException("UIFocusManager が生成されていない。RegisterArinn で登録するか new UIFocusManager() で生成する");
+        }
 
         private UIFocusManager FocusManager => _focusManager ?? UIFocusManager.Instance;
-
-        private void OnCloseButtonClicked() => FocusManager?.HideWindow(this);
-
-        private UIFocusManager RequireManager() =>
-            FocusManager ?? throw new InvalidOperationException("UIFocusManager が生成されていない。RegisterArinn で登録するか new UIFocusManager() で生成する");
 
         private void BindCloseButton(Button button)
         {
@@ -185,6 +181,21 @@ namespace Void2610.Arinn
             _transitionCts.Cancel();
             _transitionCts.Dispose();
             _transitionCts = null;
+        }
+
+        protected virtual void Awake()
+        {
+            SetVisibleImmediate(false);
+            // 派生の Awake が先に SetCloseButton していても二重に購読しない
+            if (!_boundCloseButton) BindCloseButton(closeButton);
+        }
+
+        protected virtual void OnDestroy()
+        {
+            _destroyed = true;
+            CancelTransition();
+            BindCloseButton(null);
+            _onWindowClosed.Dispose();
         }
     }
 }

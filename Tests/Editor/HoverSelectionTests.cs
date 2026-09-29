@@ -19,11 +19,7 @@ namespace Void2610.Arinn.Tests
             _hits.Clear();
             _pointer = new FakePointer();
             _navigation = CreateNavigation(new FakeNavigationInput());
-            // 手前から順に当たったことにする
-            _navigation.Raycaster = (_, _, results) =>
-            {
-                foreach (var hit in _hits) results.Add(new RaycastResult { gameObject = hit });
-            };
+            _navigation.Raycaster = new FixedRaycaster(_hits);
             _navigation.EnableHoverSelection(_pointer);
         }
 
@@ -176,6 +172,21 @@ namespace Void2610.Arinn.Tests
             NextNavigationFrame();
             _pointer.Position = (_pointer.Position ?? Vector2.zero) + Vector2.one;
             NextNavigationFrame();
+        }
+    }
+
+    /// <summary>
+    /// 決めたオブジェクトに手前から順に当たったことにする当たり判定。
+    /// </summary>
+    internal sealed class FixedRaycaster : IUIRaycaster
+    {
+        private readonly List<GameObject> _hits;
+
+        public FixedRaycaster(List<GameObject> hits) => _hits = hits;
+
+        public void RaycastAll(EventSystem eventSystem, PointerEventData pointerData, List<RaycastResult> results)
+        {
+            foreach (var hit in _hits) results.Add(new RaycastResult { gameObject = hit });
         }
     }
 

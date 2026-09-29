@@ -35,9 +35,7 @@ namespace Void2610.Arinn
 
         internal IFrameClock Clock { get; set; } = UnityFrameClock.Instance;
 
-        // EditMode では GraphicRaycaster が画面座標で当たらないため、テストで当たり判定を差し替える
-        internal Action<EventSystem, PointerEventData, List<RaycastResult>> Raycaster { get; set; } =
-            static (eventSystem, pointerData, results) => eventSystem.RaycastAll(pointerData, results);
+        internal IUIRaycaster Raycaster { get; set; } = EventSystemRaycaster.Instance;
 
         private readonly UIFocusManager _focusManager;
         private readonly Dictionary<IFocusSource, NavigationScope> _scopes = new();
@@ -65,22 +63,10 @@ namespace Void2610.Arinn
             Instance = this;
         }
 
-        // Domain Reload を切った環境で、前回のプレイのインスタンスを掴んだままにしない
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => Instance = null;
-
-        public void Dispose()
-        {
-            if (_disposed) return;
-            _disposed = true;
-            _input?.RestoreUnityMove();
-            if (_input is IDisposable disposable) disposable.Dispose();
-            _input = null;
-            _scopes.Clear();
-            _declaredScopes.Clear();
-            _selectionChanged.Dispose();
-            if (Instance == this) Instance = null;
-        }
+        /// <summary>
+        /// <see cref="Register"/> で画面に結び付けたスコープ。無ければ null（画面が宣言したスコープは含まない）。
+        /// </summary>
+        public NavigationScope GetScope(IFocusSource owner) => owner != null && _scopes.TryGetValue(owner, out var scope) ? scope : null;
 
         /// <summary>
         /// 方向入力を設定する。null で外すと、以後の移動は Unity に任せる。
@@ -148,11 +134,6 @@ namespace Void2610.Arinn
             if (owner != null) _scopes.Remove(owner);
         }
 
-        /// <summary>
-        /// <see cref="Register"/> で画面に結び付けたスコープ。無ければ null（画面が宣言したスコープは含まない）。
-        /// </summary>
-        public NavigationScope GetScope(IFocusSource owner) => owner != null && _scopes.TryGetValue(owner, out var scope) ? scope : null;
-
         public void Tick()
         {
             if (_disposed) return;
@@ -177,7 +158,12 @@ namespace Void2610.Arinn
             }
         }
 
-        private bool IsMoveBlocked => _moveBlocker?.Invoke() == true;
+        // Domain Reload を切った環境で、前回のプレイのインスタンスを掴んだままにしない
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            Instance = null;
+        }
 
         /// <summary>
         /// 最前面のウィンドウ、なければ基底画面。常時表示 UI を借りている間は、今の選択を含むスコープの画面。
@@ -203,6 +189,8 @@ namespace Void2610.Arinn
             }
             return null;
         }
+
+        private bool IsMoveBlocked => _moveBlocker?.Invoke() == true;
 
         private void UpdateMove(EventSystem eventSystem, IFocusSource owner, NavigationScope scope)
         {
@@ -262,7 +250,7 @@ namespace Void2610.Arinn
         {
             var pointerData = new PointerEventData(eventSystem) { position = position };
             _raycastResults.Clear();
-            Raycaster(eventSystem, pointerData, _raycastResults);
+            Raycaster.RaycastAll(eventSystem, pointerData, _raycastResults);
 
             foreach (var result in _raycastResults)
             {
@@ -331,6 +319,19 @@ namespace Void2610.Arinn
             if (_deadOwners.Count == 0) return;
             foreach (var owner in _deadOwners) scopes.Remove(owner);
             _deadOwners.Clear();
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            _input?.RestoreUnityMove();
+            if (_input is IDisposable disposable) disposable.Dispose();
+            _input = null;
+            _scopes.Clear();
+            _declaredScopes.Clear();
+            _selectionChanged.Dispose();
+            if (Instance == this) Instance = null;
         }
     }
 }

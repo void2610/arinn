@@ -1,4 +1,4 @@
-using System;
+using R3;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -13,8 +13,12 @@ namespace Void2610.Arinn
     [DisallowMultipleComponent]
     public sealed class VirtualCursorAnchor : Selectable, ISubmitHandler
     {
-        internal event Action<bool> FocusChanged;
-        internal event Action Submitted;
+        internal Observable<bool> OnFocusChanged => _onFocusChanged;
+
+        internal Observable<Unit> OnSubmitted => _onSubmitted;
+
+        private readonly Subject<bool> _onFocusChanged = new();
+        private readonly Subject<Unit> _onSubmitted = new();
 
         protected override void Awake()
         {
@@ -27,18 +31,25 @@ namespace Void2610.Arinn
         public override void OnSelect(BaseEventData eventData)
         {
             base.OnSelect(eventData);
-            FocusChanged?.Invoke(true);
+            _onFocusChanged.OnNext(true);
         }
 
         public override void OnDeselect(BaseEventData eventData)
         {
             base.OnDeselect(eventData);
-            FocusChanged?.Invoke(false);
+            _onFocusChanged.OnNext(false);
         }
 
         public void OnSubmit(BaseEventData eventData)
         {
-            if (IsInteractable()) Submitted?.Invoke();
+            if (IsInteractable()) _onSubmitted.OnNext(Unit.Default);
+        }
+
+        protected override void OnDestroy()
+        {
+            _onFocusChanged.Dispose();
+            _onSubmitted.Dispose();
+            base.OnDestroy();
         }
     }
 }

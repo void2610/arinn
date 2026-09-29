@@ -5,8 +5,6 @@ namespace Void2610.Arinn.Tests
 {
     public sealed class DirectionalResolverTests
     {
-        private static Rect At(float x, float y) => new(x - 50f, y - 25f, 100f, 50f);
-
         [Test]
         public void FindNext_同じ行の隣を選ぶ()
         {
@@ -54,6 +52,11 @@ namespace Void2610.Arinn.Tests
             var candidates = new[] { At(-200f, 0f), At(-400f, 0f), At(-400f, 200f) };
 
             Assert.That(DirectionalResolver.FindWrapTarget(At(0f, 0f), candidates, NavigationDirection.Right), Is.EqualTo(1));
+        }
+
+        private static Rect At(float x, float y)
+        {
+            return new(x - 50f, y - 25f, 100f, 50f);
         }
     }
 }

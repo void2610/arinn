@@ -117,7 +117,10 @@ namespace Void2610.Arinn.Tests
             return rect;
         }
 
-        internal Button CreateButtonFor(string name, Transform parent, Vector2 position) => CreateButton(name, parent, position);
+        internal Button CreateButtonFor(string name, Transform parent, Vector2 position)
+        {
+            return CreateButton(name, parent, position);
+        }
 
         protected GameObject Create(string name)
         {
@@ -133,10 +136,18 @@ namespace Void2610.Arinn.Tests
             return window;
         }
 
-        protected TestFocusSource CreateBase(string name) => new() { Default = Create(name + "/Default") };
+        protected TestFocusSource CreateBase(string name)
+        {
+            return new()
+            {
+                Default = Create(name + "/Default")
+            };
+        }
 
-        private void InvokeEventSystem(string method) =>
+        private void InvokeEventSystem(string method)
+        {
             typeof(EventSystem).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(EventSystem, null);
+        }
 
         private sealed class FakeClock : IFrameClock
         {
@@ -148,35 +159,33 @@ namespace Void2610.Arinn.Tests
 
     public sealed class TestWindow : WindowBase
     {
-        public GameObject Default;
-        public bool ClosableByCancel = true;
-        public IWindowTransition TransitionOverride;
-
         public override GameObject DefaultFocusElement => Default;
 
         public override bool IsClosableByCancelInput => ClosableByCancel;
 
+        public CanvasGroup Group => GetComponent<CanvasGroup>();
+        public GameObject Default;
+        public bool ClosableByCancel = true;
+
         protected override IWindowTransition Transition => TransitionOverride;
+        public IWindowTransition TransitionOverride;
 
         public System.Func<TestWindow, NavigationScope> ScopeFactory;
         public int ScopeCreatedCount;
+
+        public void BindCloseButton(Button button) => SetCloseButton(button);
 
         public override NavigationScope CreateNavigationScope()
         {
             ScopeCreatedCount++;
             return ScopeFactory != null ? ScopeFactory(this) : base.CreateNavigationScope();
         }
-
-        public void BindCloseButton(Button button) => SetCloseButton(button);
-
-        public CanvasGroup Group => GetComponent<CanvasGroup>();
     }
 
     public sealed class TestFocusSource : IFocusSource
     {
-        public GameObject Default;
-
         public GameObject DefaultFocusElement => Default;
+        public GameObject Default;
     }
 
     /// <summary>
@@ -184,10 +193,9 @@ namespace Void2610.Arinn.Tests
     /// </summary>
     public sealed class TestScopedFocusSource : IFocusSource, INavigationScopeSource
     {
+        public GameObject DefaultFocusElement => Default;
         public GameObject Default;
         public System.Func<NavigationScope> ScopeFactory;
-
-        public GameObject DefaultFocusElement => Default;
 
         public NavigationScope CreateNavigationScope() => ScopeFactory?.Invoke();
     }
@@ -204,14 +212,13 @@ namespace Void2610.Arinn.Tests
 
     public sealed class FakeNavigationInput : INavigationInput
     {
+        public float RepeatDelay { get; set; } = 0.5f;
+
+        public float RepeatRate { get; set; } = 0.1f;
         public Vector2 Move;
         public int SuppressCount;
         public int RestoreCount;
         public bool IsSuppressed;
-
-        public float RepeatDelay { get; set; } = 0.5f;
-
-        public float RepeatRate { get; set; } = 0.1f;
 
         public Vector2 ReadMove() => Move;
 
@@ -234,12 +241,11 @@ namespace Void2610.Arinn.Tests
     /// </summary>
     public sealed class DisposableNavigationInput : INavigationInput, System.IDisposable
     {
-        public bool IsSuppressed;
-        public bool IsDisposed;
-
         public float RepeatDelay => 0.5f;
 
         public float RepeatRate => 0.1f;
+        public bool IsSuppressed;
+        public bool IsDisposed;
 
         public Vector2 ReadMove() => Vector2.zero;
 
@@ -247,7 +253,10 @@ namespace Void2610.Arinn.Tests
 
         public void RestoreUnityMove() => IsSuppressed = false;
 
-        public void Dispose() => IsDisposed = true;
+        public void Dispose()
+        {
+            IsDisposed = true;
+        }
     }
 
     public sealed class FakePointer : IPointerPositionSource
@@ -292,12 +301,11 @@ namespace Void2610.Arinn.Tests
     /// </summary>
     public sealed class NeverEndingHideTransition : IWindowTransition
     {
+        public UniTask HideAsync(CanvasGroup canvasGroup, CancellationToken cancellationToken) => UniTask.Never(cancellationToken);
         public UniTask ShowAsync(CanvasGroup canvasGroup, CancellationToken cancellationToken)
         {
             canvasGroup.alpha = 1f;
             return UniTask.CompletedTask;
         }
-
-        public UniTask HideAsync(CanvasGroup canvasGroup, CancellationToken cancellationToken) => UniTask.Never(cancellationToken);
     }
 }

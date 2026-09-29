@@ -28,23 +28,17 @@ namespace Void2610.Arinn
         private readonly Subject<Unit> _onSubmitted = new();
         private readonly Subject<bool> _onFocusChanged = new();
 
-        public abstract bool TryMove(NavigationDirection direction);
-
         public EdgePolicy GetEdge(NavigationDirection direction) => Edges.Get(direction);
 
         public void Submit() => _onSubmitted.OnNext(Unit.Default);
+
+        public abstract bool TryMove(NavigationDirection direction);
 
         public void SetFocused(bool focused)
         {
             if (IsFocused == focused) return;
             IsFocused = focused;
             _onFocusChanged.OnNext(focused);
-        }
-
-        public virtual void Dispose()
-        {
-            _onSubmitted.Dispose();
-            _onFocusChanged.Dispose();
         }
 
         /// <summary>
@@ -68,6 +62,12 @@ namespace Void2610.Arinn
             var from = step > 0 ? -1 : count;
             var found = FindAlongLine(from, step, count, canStop);
             return found == current ? -1 : found;
+        }
+
+        public virtual void Dispose()
+        {
+            _onSubmitted.Dispose();
+            _onFocusChanged.Dispose();
         }
     }
 }

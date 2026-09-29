@@ -12,16 +12,6 @@ namespace Void2610.Arinn
     /// </summary>
     public sealed class InputSystemNavigationInput : INavigationInput, IDisposable
     {
-        private const float DEFAULT_REPEAT_DELAY = 0.5f;
-        private const float DEFAULT_REPEAT_RATE = 0.1f;
-
-        // 止めている対象。module が参照している Action そのもの（生成コードの Action は複製なので、そちらを止めても効かない）
-        private InputSystemUIInputModule _suppressedModule;
-        private InputAction _suppressedAction;
-
-        private InputAction _source;
-        private InputAction _clone;
-
         public float RepeatDelay
         {
             get
@@ -39,6 +29,16 @@ namespace Void2610.Arinn
                 return module ? module.moveRepeatRate : DEFAULT_REPEAT_RATE;
             }
         }
+
+        private const float DEFAULT_REPEAT_DELAY = 0.5f;
+        private const float DEFAULT_REPEAT_RATE = 0.1f;
+
+        // 止めている対象。module が参照している Action そのもの（生成コードの Action は複製なので、そちらを止めても効かない）
+        private InputSystemUIInputModule _suppressedModule;
+        private InputAction _suppressedAction;
+
+        private InputAction _source;
+        private InputAction _clone;
 
         private static InputSystemUIInputModule CurrentModule =>
             EventSystem.current ? EventSystem.current.currentInputModule as InputSystemUIInputModule : null;
@@ -80,19 +80,19 @@ namespace Void2610.Arinn
             _suppressedAction = null;
         }
 
+        private static InputAction GetMoveAction(InputSystemUIInputModule module)
+        {
+            if (!module) return null;
+            var reference = module.move;
+            return reference ? reference.action : null;
+        }
+
         public void Dispose()
         {
             RestoreUnityMove();
             _clone?.Dispose();
             _clone = null;
             _source = null;
-        }
-
-        private static InputAction GetMoveAction(InputSystemUIInputModule module)
-        {
-            if (!module) return null;
-            var reference = module.move;
-            return reference ? reference.action : null;
         }
     }
 }

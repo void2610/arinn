@@ -45,7 +45,7 @@ namespace Void2610.Arinn
             {
                 var selected = CurrentSelected;
                 if (!selected) return false;
-                IFocusSource source = TopWindow ? TopWindow : BaseFocusSource;
+                var source = TopWindow ? TopWindow : BaseFocusSource;
                 return selected == GetDefaultFocusElement(source);
             }
         }
@@ -94,19 +94,6 @@ namespace Void2610.Arinn
             SceneManager.activeSceneChanged += OnActiveSceneChanged;
         }
 
-        // Domain Reload を切った環境で、前回のプレイのインスタンスを掴んだままにしない
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => Instance = null;
-
-        public void Dispose()
-        {
-            if (_disposed) return;
-            _disposed = true;
-            SceneManager.activeSceneChanged -= OnActiveSceneChanged;
-            _pendingFocus = null;
-            if (Instance == this) Instance = null;
-        }
-
         /// <summary>
         /// ウィンドウの開閉に合わせてゲームプレイ側の入力を止める窓口を設定する。
         /// </summary>
@@ -116,6 +103,60 @@ namespace Void2610.Arinn
         /// 決定入力の押下を調べる手段を設定する。未設定なら常に「押されていない」とみなす。
         /// </summary>
         public void SetSubmitHoldProbe(ISubmitHoldProbe probe) => _submitHoldProbe = probe;
+
+        /// <summary>
+        /// 指定ウィンドウがスタックに積まれているか。
+        /// </summary>
+        public bool IsWindowInStack(WindowBase window) => _windowStack.FindIndex(item => item.Window == window) >= 0;
+
+        /// <summary>
+        /// 基底画面だけを差し替える。フォーカスは動かさない。
+        /// </summary>
+        public void SetBaseFocusSource(IFocusSource source) => BaseFocusSource = source;
+
+        /// <summary>
+        /// 常時表示 UI へフォーカスを借りる。ウィンドウスタックには積まない。
+        /// </summary>
+        public void EnterPersistentUIFocus(GameObject element) => EnterPersistentUIFocus(element, element);
+
+        /// <summary>
+        /// 入力でウィンドウを開閉するショートカットを登録する。他のウィンドウが開いている間は開かない。
+        /// </summary>
+        public void RegisterToggleAction<T>(Observable<T> input, WindowBase window, CompositeDisposable disposables, Func<bool> canToggle = null) => RegisterToggleAction(input, window, () => ShowWindow(window), disposables, canToggle);
+
+        /// <summary>
+        /// 入力でウィンドウを開閉するショートカットを登録する。開くときは onOpen を呼ぶ（ShowWindow を含めること）。
+        /// </summary>
+        public void RegisterToggleAction<T>(Observable<T> input, WindowBase window, Action onOpen, CompositeDisposable disposables, Func<bool> canToggle = null) =>
+            input
+                .Where(_ => canToggle == null || canToggle())
+                .Where(_ => !HasOpenWindows || window.IsVisible)
+                .Subscribe(_ =>
+                {
+                    if (window.IsVisible) HideWindow(window);
+                    else onOpen();
+                })
+                .AddTo(disposables);
+
+        /// <summary>
+        /// 入力でウィンドウの表示内容を切り替えるショートカットを登録する。
+        /// 開いていて shouldClose が true なら閉じ、それ以外は（閉じていれば開いてから）onShowContent を呼ぶ。
+        /// </summary>
+        public void RegisterToggleAction<T>(Observable<T> input, WindowBase window, Action onShowContent, Func<bool> shouldClose, CompositeDisposable disposables, Func<bool> canToggle = null) =>
+            input
+                .Where(_ => canToggle == null || canToggle())
+                .Where(_ => !HasOpenWindows || window.IsVisible)
+                .Subscribe(_ =>
+                {
+                    if (window.IsVisible && shouldClose())
+                    {
+                        HideWindow(window);
+                        return;
+                    }
+                    if (!window.IsVisible) ShowWindow(window);
+                    onShowContent();
+                })
+                .AddTo(disposables);
 
         /// <summary>
         /// ウィンドウを開く。既に開いていれば何もしない。
@@ -149,11 +190,6 @@ namespace Void2610.Arinn
             if (window.IsVisible) HideWindow(window);
             else ShowWindow(window);
         }
-
-        /// <summary>
-        /// 指定ウィンドウがスタックに積まれているか。
-        /// </summary>
-        public bool IsWindowInStack(WindowBase window) => _windowStack.FindIndex(item => item.Window == window) >= 0;
 
         /// <summary>
         /// 最前面のウィンドウを閉じる。Cancel で閉じられないウィンドウなら閉じない。
@@ -216,16 +252,6 @@ namespace Void2610.Arinn
         }
 
         /// <summary>
-        /// 基底画面だけを差し替える。フォーカスは動かさない。
-        /// </summary>
-        public void SetBaseFocusSource(IFocusSource source) => BaseFocusSource = source;
-
-        /// <summary>
-        /// 常時表示 UI へフォーカスを借りる。ウィンドウスタックには積まない。
-        /// </summary>
-        public void EnterPersistentUIFocus(GameObject element) => EnterPersistentUIFocus(element, element);
-
-        /// <summary>
         /// 常時表示 UI へフォーカスを借りる。owner は同じ UI かどうかの判定に使う。
         /// </summary>
         public void EnterPersistentUIFocus(GameObject element, GameObject owner)
@@ -272,46 +298,6 @@ namespace Void2610.Arinn
         }
 
         /// <summary>
-        /// 入力でウィンドウを開閉するショートカットを登録する。他のウィンドウが開いている間は開かない。
-        /// </summary>
-        public void RegisterToggleAction<T>(Observable<T> input, WindowBase window, CompositeDisposable disposables, Func<bool> canToggle = null) =>
-            RegisterToggleAction(input, window, () => ShowWindow(window), disposables, canToggle);
-
-        /// <summary>
-        /// 入力でウィンドウを開閉するショートカットを登録する。開くときは onOpen を呼ぶ（ShowWindow を含めること）。
-        /// </summary>
-        public void RegisterToggleAction<T>(Observable<T> input, WindowBase window, Action onOpen, CompositeDisposable disposables, Func<bool> canToggle = null) =>
-            input
-                .Where(_ => canToggle == null || canToggle())
-                .Where(_ => !HasOpenWindows || window.IsVisible)
-                .Subscribe(_ =>
-                {
-                    if (window.IsVisible) HideWindow(window);
-                    else onOpen();
-                })
-                .AddTo(disposables);
-
-        /// <summary>
-        /// 入力でウィンドウの表示内容を切り替えるショートカットを登録する。
-        /// 開いていて shouldClose が true なら閉じ、それ以外は（閉じていれば開いてから）onShowContent を呼ぶ。
-        /// </summary>
-        public void RegisterToggleAction<T>(Observable<T> input, WindowBase window, Action onShowContent, Func<bool> shouldClose, CompositeDisposable disposables, Func<bool> canToggle = null) =>
-            input
-                .Where(_ => canToggle == null || canToggle())
-                .Where(_ => !HasOpenWindows || window.IsVisible)
-                .Subscribe(_ =>
-                {
-                    if (window.IsVisible && shouldClose())
-                    {
-                        HideWindow(window);
-                        return;
-                    }
-                    if (!window.IsVisible) ShowWindow(window);
-                    onShowContent();
-                })
-                .AddTo(disposables);
-
-        /// <summary>
         /// 予約したフォーカスの適用と、フォーカス喪失からの復帰を 1 フレーム分進める。
         /// </summary>
         public void Tick()
@@ -328,9 +314,24 @@ namespace Void2610.Arinn
             RecoverLostFocus();
         }
 
+        // Domain Reload を切った環境で、前回のプレイのインスタンスを掴んだままにしない
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            Instance = null;
+        }
+
+        private bool IsSubmitHeld()
+        {
+            return _submitHoldProbe?.IsSubmitHeld == true;
+        }
+
         private static GameObject CurrentSelected => EventSystem.current ? EventSystem.current.currentSelectedGameObject : null;
 
-        private bool IsSubmitHeld() => _submitHoldProbe?.IsSubmitHeld == true;
+        private static GameObject GetDefaultFocusElement(IFocusSource source)
+        {
+            return UnityObjects.GetDefaultFocusElement(source);
+        }
 
         private void PopWindow(WindowBase window)
         {
@@ -439,7 +440,7 @@ namespace Void2610.Arinn
             if (now - _focusLostSince.Value < FocusRecoveryDelaySeconds) return;
 
             _focusLostSince = null;
-            IFocusSource source = TopWindow ? TopWindow : BaseFocusSource;
+            var source = TopWindow ? TopWindow : BaseFocusSource;
             SetSelected(GetDefaultFocusElement(source));
         }
 
@@ -466,14 +467,21 @@ namespace Void2610.Arinn
             return !target.TryGetComponent<Selectable>(out var selectable) || selectable.IsInteractable();
         }
 
-        private static GameObject GetDefaultFocusElement(IFocusSource source) => UnityObjects.GetDefaultFocusElement(source);
-
         private static void SetSelected(GameObject target)
         {
             var eventSystem = EventSystem.current;
             // 行き先がないときは今のフォーカスを消さない（消えたフォーカスは監視側が戻す）
             if (!eventSystem || !target || !target.activeInHierarchy) return;
             eventSystem.SetSelectedGameObject(target);
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            SceneManager.activeSceneChanged -= OnActiveSceneChanged;
+            _pendingFocus = null;
+            if (Instance == this) Instance = null;
         }
     }
 }

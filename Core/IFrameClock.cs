@@ -14,10 +14,9 @@ namespace Void2610.Arinn
 
     internal sealed class UnityFrameClock : IFrameClock
     {
-        public static readonly UnityFrameClock Instance = new();
-
         public int FrameCount => Time.frameCount;
 
         public float UnscaledTime => Time.unscaledTime;
+        public static readonly UnityFrameClock Instance = new();
     }
 }

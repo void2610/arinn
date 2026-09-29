@@ -9,10 +9,7 @@ namespace Void2610.Arinn.Tests
         private const float RATE = 0.1f;
 
         [Test]
-        public void Quantize_デッドゾーンの内側は方向にしない()
-        {
-            Assert.That(DirectionRepeater.Quantize(new Vector2(0.3f, 0.3f)), Is.Null);
-        }
+        public void Quantize_デッドゾーンの内側は方向にしない() => Assert.That(DirectionRepeater.Quantize(new Vector2(0.3f, 0.3f)), Is.Null);
 
         [Test]
         public void Quantize_斜めは大きい軸を採り同じなら水平を優先する()

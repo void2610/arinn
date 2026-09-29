@@ -54,6 +54,9 @@ namespace Void2610.Arinn
         /// <summary>
         /// 押下の状態を捨てる。次に同じ方向が入力されたら、新しい押下として扱う。
         /// </summary>
-        public void Reset() => _held = null;
+        public void Reset()
+        {
+            _held = null;
+        }
     }
 }

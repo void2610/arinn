@@ -6,29 +6,16 @@ namespace Void2610.Arinn.Tests
     public sealed class ScrollIntoViewTests
     {
         [Test]
-        public void CalculateAxisDelta_見えている要素は動かさない()
-        {
-            Assert.That(ScrollIntoView.CalculateAxisDelta(-50f, 50f, -100f, 100f, -500f, 100f), Is.Zero);
-        }
+        public void CalculateAxisDelta_見えている要素は動かさない() => Assert.That(ScrollIntoView.CalculateAxisDelta(-50f, 50f, -100f, 100f, -500f, 100f), Is.Zero);
 
         [Test]
-        public void CalculateAxisDelta_下へはみ出した要素は下端へ揃える()
-        {
-            Assert.That(ScrollIntoView.CalculateAxisDelta(-180f, -120f, -100f, 100f, -500f, 100f), Is.EqualTo(80f));
-        }
+        public void CalculateAxisDelta_下へはみ出した要素は下端へ揃える() => Assert.That(ScrollIntoView.CalculateAxisDelta(-180f, -120f, -100f, 100f, -500f, 100f), Is.EqualTo(80f));
 
         [Test]
-        public void CalculateAxisDelta_コンテンツの端をビューポートの内側へ入れない()
-        {
-            // 揃えるには 150 動かす必要があるが、コンテンツの下端（-220）がビューポートの下端に来るところで止める
-            Assert.That(ScrollIntoView.CalculateAxisDelta(-250f, -200f, -100f, 100f, -220f, 100f), Is.EqualTo(120f));
-        }
+        public void CalculateAxisDelta_コンテンツの端をビューポートの内側へ入れない() => Assert.That(ScrollIntoView.CalculateAxisDelta(-250f, -200f, -100f, 100f, -220f, 100f), Is.EqualTo(120f));
 
         [Test]
-        public void CalculateAxisDelta_ビューポートに収まるコンテンツはスクロールしない()
-        {
-            Assert.That(ScrollIntoView.CalculateAxisDelta(-250f, -200f, -100f, 100f, -90f, 90f), Is.Zero);
-        }
+        public void CalculateAxisDelta_ビューポートに収まるコンテンツはスクロールしない() => Assert.That(ScrollIntoView.CalculateAxisDelta(-250f, -200f, -100f, 100f, -90f, 90f), Is.Zero);
     }
 
     public sealed class ScrollIntoViewEnsureVisibleTests : ArinnTestFixture

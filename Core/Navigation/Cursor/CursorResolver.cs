@@ -1,4 +1,5 @@
 using System;
+using R3;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -29,6 +30,7 @@ namespace Void2610.Arinn
 
         private readonly VirtualCursorAnchor _anchor;
         private readonly INavigationResolver _fallback;
+        private readonly IDisposable _subscriptions;
 
         /// <param name="cursor">動かすカーソル</param>
         /// <param name="area">カーソルが動く範囲。スコープの Root の配下であること。アンカーはこの子に全面で置かれる</param>
@@ -39,8 +41,9 @@ namespace Void2610.Arinn
             if (!area) throw new ArgumentNullException(nameof(area));
             _fallback = fallback ?? SpatialResolver.Instance;
             _anchor = CreateAnchor(area);
-            _anchor.FocusChanged += Cursor.SetFocused;
-            _anchor.Submitted += Cursor.Submit;
+            _subscriptions = Disposable.Combine(
+                _anchor.OnFocusChanged.Subscribe(Cursor.SetFocused),
+                _anchor.OnSubmitted.Subscribe(_ => Cursor.Submit()));
         }
 
         public Selectable Resolve(NavigationScope scope, Selectable current, NavigationDirection direction)
@@ -50,18 +53,6 @@ namespace Void2610.Arinn
 
             var edge = Cursor.GetEdge(direction);
             return edge.Kind == EdgePolicyKind.Exit ? scope.ResolveExit(edge, current) : null;
-        }
-
-        /// <summary>
-        /// アンカーを破棄する。area と一緒に破棄される場合は呼ばなくてよい。
-        /// </summary>
-        public void Dispose()
-        {
-            if (!_anchor) return;
-            _anchor.FocusChanged -= Cursor.SetFocused;
-            _anchor.Submitted -= Cursor.Submit;
-            if (Application.isPlaying) UnityEngine.Object.Destroy(_anchor.gameObject);
-            else UnityEngine.Object.DestroyImmediate(_anchor.gameObject);
         }
 
         private static VirtualCursorAnchor CreateAnchor(RectTransform area)
@@ -75,6 +66,17 @@ namespace Void2610.Arinn
             rect.offsetMax = Vector2.zero;
             go.layer = area.gameObject.layer;
             return go.AddComponent<VirtualCursorAnchor>();
+        }
+
+        /// <summary>
+        /// アンカーを破棄する。area と一緒に破棄される場合は呼ばなくてよい。
+        /// </summary>
+        public void Dispose()
+        {
+            if (!_anchor) return;
+            _subscriptions.Dispose();
+            if (Application.isPlaying) UnityEngine.Object.Destroy(_anchor.gameObject);
+            else UnityEngine.Object.DestroyImmediate(_anchor.gameObject);
         }
     }
 }

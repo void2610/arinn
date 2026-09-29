@@ -88,12 +88,15 @@ namespace Void2610.Arinn
             return true;
         }
 
+        private bool IsNavigable(Vector2Int position)
+        {
+            return _isNavigable == null || _isNavigable(position);
+        }
+
         public override void Dispose()
         {
             base.Dispose();
             _onMoved.Dispose();
         }
-
-        private bool IsNavigable(Vector2Int position) => _isNavigable == null || _isNavigable(position);
     }
 }

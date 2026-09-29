@@ -7,13 +7,6 @@ namespace Void2610.Arinn
     /// </summary>
     public sealed class InputSystemSubmitHoldProbe : ISubmitHoldProbe
     {
-        private readonly InputAction _submitAction;
-
-        public InputSystemSubmitHoldProbe(InputAction submitAction = null)
-        {
-            _submitAction = submitAction;
-        }
-
         public bool IsSubmitHeld
         {
             get
@@ -23,6 +16,13 @@ namespace Void2610.Arinn
                 return Gamepad.current?.buttonSouth.isPressed == true
                     || (keyboard != null && (keyboard.spaceKey.isPressed || keyboard.enterKey.isPressed));
             }
+        }
+
+        private readonly InputAction _submitAction;
+
+        public InputSystemSubmitHoldProbe(InputAction submitAction = null)
+        {
+            _submitAction = submitAction;
         }
     }
 }

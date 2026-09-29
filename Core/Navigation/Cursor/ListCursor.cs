@@ -93,12 +93,15 @@ namespace Void2610.Arinn
             return true;
         }
 
+        private bool IsNavigable(int index)
+        {
+            return _isNavigable == null || _isNavigable(index);
+        }
+
         public override void Dispose()
         {
             base.Dispose();
             _onMoved.Dispose();
         }
-
-        private bool IsNavigable(int index) => _isNavigable == null || _isNavigable(index);
     }
 }
