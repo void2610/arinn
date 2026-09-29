@@ -20,6 +20,7 @@ namespace Void2610.Arinn.Tests
         private InputSystemUIInputModule _module;
         private Gamepad _gamepad;
         private Keyboard _keyboard;
+        private List<InputAction> _disabledActions;
 
         // 基底の SetUp（入力の隔離）の後に走る
         [SetUp]
@@ -32,6 +33,9 @@ namespace Void2610.Arinn.Tests
                 eventSystem.enabled = false;
                 _disabledEventSystems.Add(eventSystem);
             }
+            // InputForUI が入力の隔離の後も自前の UI アクションにコールバックを残し、押すと NullReferenceException を投げる（Input System 1.18）
+            _disabledActions = InputSystem.ListEnabledActions();
+            foreach (var action in _disabledActions) action.Disable();
             _gamepad = InputSystem.AddDevice<Gamepad>();
             _keyboard = InputSystem.AddDevice<Keyboard>();
         }
@@ -47,6 +51,7 @@ namespace Void2610.Arinn.Tests
                 if (eventSystem) eventSystem.enabled = true;
             }
             _disabledEventSystems.Clear();
+            foreach (var action in _disabledActions) action.Enable();
         }
 
         [UnityTest]
