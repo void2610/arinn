@@ -220,7 +220,7 @@ namespace Void2610.Arinn
             if (!current || !scope.Contains(current))
             {
                 // スコープの外（背面の UI）や未選択のときは、動かす代わりにスコープの中へ戻す
-                var fallback = GetDefaultFocusElement(owner);
+                var fallback = UnityObjects.GetDefaultFocusElement(owner);
                 if (fallback && fallback.activeInHierarchy && scope.Contains(fallback)) SelectBy(eventSystem, fallback, SelectionChangeSource.Input);
                 return;
             }
@@ -319,20 +319,11 @@ namespace Void2610.Arinn
 
             foreach (var owner in _scopes.Keys)
             {
-                // 破棄済みの MonoBehaviour は通常の null 判定をすり抜けるため、UnityEngine.Object として判定する
-                if (owner is UnityEngine.Object obj && !obj) _deadOwners.Add(owner);
+                if (!UnityObjects.IsAlive(owner)) _deadOwners.Add(owner);
             }
             if (_deadOwners.Count == 0) return;
             foreach (var owner in _deadOwners) _scopes.Remove(owner);
             _deadOwners.Clear();
-        }
-
-        private static GameObject GetDefaultFocusElement(IFocusSource owner)
-        {
-            if (owner == null) return null;
-            if (owner is UnityEngine.Object obj && !obj) return null;
-            var element = owner.DefaultFocusElement;
-            return element ? element : null;
         }
     }
 }

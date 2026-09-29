@@ -466,14 +466,7 @@ namespace Void2610.Arinn
             return !target.TryGetComponent<Selectable>(out var selectable) || selectable.IsInteractable();
         }
 
-        private static GameObject GetDefaultFocusElement(IFocusSource source)
-        {
-            if (source == null) return null;
-            // 破棄済みの MonoBehaviour は通常の null 判定をすり抜けるため、UnityEngine.Object として判定する
-            if (source is UnityEngine.Object obj && !obj) return null;
-            var element = source.DefaultFocusElement;
-            return element ? element : null;
-        }
+        private static GameObject GetDefaultFocusElement(IFocusSource source) => UnityObjects.GetDefaultFocusElement(source);
 
         private static void SetSelected(GameObject target)
         {
