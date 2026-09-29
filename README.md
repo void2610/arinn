@@ -228,7 +228,7 @@ Package Manager の arinn のページの Samples から **Minimal** を Import 
 `MinimalLifetimeScope` は arinn と `MinimalPresenter` だけを登録し、`MinimalPresenter` が `FindFirstObjectByType` で View を取得して、View のイベントを購読してウィンドウを開く。
 
 - **基底画面**（`MenuScreen`）：上下の端で回り込むメニュー。
-- **設定**（`SettingsWindow`）：選択に合わせてスクロールする一覧。右端から右上の閉じるボタンへ抜ける。
+- **設定**（`SettingsWindow`）：選択に合わせてスクロールする一覧。右端から右上の閉じるボタンへ抜ける。閉じるボタンと一覧の先頭は、位置では隣にならないので `Link` で行き来させる。
 - **持ち物**（`InventoryWindow`）：`GridCursor` のグリッド。鍵のかかったマスを飛ばし、左右は回り込み、下端から閉じるボタンへ抜ける。
 - **確認ダイアログ**（`ConfirmDialog`）：どのウィンドウの上にも重ねて開け、閉じると開いた元のボタンへフォーカスが戻る。
 
