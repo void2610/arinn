@@ -12,14 +12,6 @@ namespace Void2610.Arinn.Samples
     /// </summary>
     public sealed class MinimalLifetimeScope : LifetimeScope
     {
-        protected override void Awake()
-        {
-            // 普通はシーンに置いておく EventSystem と UI を、サンプルではコンテナを組む前にコードで作る
-            EnsureEventSystem();
-            BuildUI();
-            base.Awake();
-        }
-
         protected override void Configure(IContainerBuilder builder)
         {
             builder.RegisterArinn(manager => manager.SetSubmitHoldProbe(new InputSystemSubmitHoldProbe()));
@@ -43,6 +35,14 @@ namespace Void2610.Arinn.Samples
             if (EventSystem.current) return;
             var go = new GameObject("EventSystem", typeof(EventSystem));
             go.AddComponent<InputSystemUIInputModule>().AssignDefaultActions();
+        }
+
+        protected override void Awake()
+        {
+            // 普通はシーンに置いておく EventSystem と UI を、サンプルではコンテナを組む前にコードで作る
+            EnsureEventSystem();
+            BuildUI();
+            base.Awake();
         }
     }
 }

@@ -23,6 +23,9 @@ namespace Void2610.Arinn.Samples
         private Button _inventory;
         private Button _quit;
 
+        // 上下の端は反対側へ回り込む
+        public NavigationScope CreateNavigationScope() => new NavigationScope(transform).OnEdge(NavigationDirection.Up, EdgePolicy.WrapRow).OnEdge(NavigationDirection.Down, EdgePolicy.WrapRow);
+
         public static MenuScreen Create(Transform parent)
         {
             var root = SampleUI.CreateStretch("MenuScreen", parent);
@@ -34,10 +37,5 @@ namespace Void2610.Arinn.Samples
             SampleUI.CreateText("十字キー / 矢印キーで移動、決定で押す、Esc / B で閉じる", root, new Vector2(0f, -300f), new Vector2(1200f, 60f), 26);
             return screen;
         }
-
-        // 上下の端は反対側へ回り込む
-        public NavigationScope CreateNavigationScope() => new NavigationScope(transform)
-            .OnEdge(NavigationDirection.Up, EdgePolicy.WrapRow)
-            .OnEdge(NavigationDirection.Down, EdgePolicy.WrapRow);
     }
 }

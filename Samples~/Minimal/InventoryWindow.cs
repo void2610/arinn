@@ -10,6 +10,10 @@ namespace Void2610.Arinn.Samples
     /// </summary>
     public sealed class InventoryWindow : WindowBase
     {
+        /// <summary>
+        /// カーソルのマスで決定した。
+        /// </summary>
+        public Observable<Vector2Int> OnSlotSubmitted => _cursor.OnSubmitted.Select(_ => _cursor.Position);
         private const int COLUMNS = 5;
         private const int ROWS = 3;
         private const float CELL_SIZE = 100f;
@@ -19,16 +23,13 @@ namespace Void2610.Arinn.Samples
         private static readonly Color LockedColor = new(0.1f, 0.1f, 0.12f);
         private static readonly Color CursorColor = new(0.85f, 0.55f, 0.15f);
 
-        /// <summary>
-        /// カーソルのマスで決定した。
-        /// </summary>
-        public Observable<Vector2Int> OnSlotSubmitted => _cursor.OnSubmitted.Select(_ => _cursor.Position);
-
         private readonly CompositeDisposable _disposables = new();
         private Image[,] _cells;
         private GridCursor _cursor;
         private CursorResolver _resolver;
         private Text _caption;
+
+        public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope().UseResolver(_resolver);
 
         public static InventoryWindow Create(Transform parent)
         {
@@ -37,13 +38,10 @@ namespace Void2610.Arinn.Samples
             return window;
         }
 
-        public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope().UseResolver(_resolver);
-
-        protected override void OnDestroy()
+        // 右端の列の真ん中だけ鍵がかかっている
+        private static bool IsLocked(Vector2Int cell)
         {
-            _disposables.Dispose();
-            _cursor?.Dispose();
-            base.OnDestroy();
+            return cell.x == COLUMNS - 1 && cell.y == 1;
         }
 
         private void Build(RectTransform panel)
@@ -77,9 +75,6 @@ namespace Void2610.Arinn.Samples
             Refresh();
         }
 
-        // 右端の列の真ん中だけ鍵がかかっている
-        private static bool IsLocked(Vector2Int cell) => cell.x == COLUMNS - 1 && cell.y == 1;
-
         private void Refresh()
         {
             for (var x = 0; x < COLUMNS; x++)
@@ -92,6 +87,13 @@ namespace Void2610.Arinn.Samples
                 }
             }
             _caption.text = _cursor.IsFocused ? $"マス ({_cursor.Position.x}, {_cursor.Position.y})　決定で捨てる" : "";
+        }
+
+        protected override void OnDestroy()
+        {
+            _disposables.Dispose();
+            _cursor?.Dispose();
+            base.OnDestroy();
         }
     }
 }

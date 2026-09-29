@@ -34,12 +34,23 @@ namespace Void2610.Arinn.Samples
 
             _menu.OnSettingsClicked.Subscribe(_ => _settings.Open()).AddTo(_disposables);
             _menu.OnInventoryClicked.Subscribe(_ => _inventory.Open()).AddTo(_disposables);
-            _menu.OnQuitClicked.Subscribe(_ => _dialog.Open("サンプルを終了しますか？", Quit)).AddTo(_disposables);
+            _menu.OnQuitClicked
+                .SubscribeAwait(async (_, ct) =>
+                {
+                    if (await _dialog.ConfirmAsync("サンプルを終了しますか？", ct)) Quit();
+                }, AwaitOperation.Drop)
+                .AddTo(_disposables);
             _settings.OnResetClicked
-                .Subscribe(_ => _dialog.Open("設定を初期値に戻しますか？", () => Debug.Log("[arinn sample] 初期値に戻した")))
+                .SubscribeAwait(async (_, ct) =>
+                {
+                    if (await _dialog.ConfirmAsync("設定を初期値に戻しますか？", ct)) Debug.Log("[arinn sample] 初期値に戻した");
+                }, AwaitOperation.Drop)
                 .AddTo(_disposables);
             _inventory.OnSlotSubmitted
-                .Subscribe(cell => _dialog.Open($"マス ({cell.x}, {cell.y}) の道具を捨てますか？", () => Debug.Log($"[arinn sample] ({cell.x}, {cell.y}) を捨てた")))
+                .SubscribeAwait(async (cell, ct) =>
+                {
+                    if (await _dialog.ConfirmAsync($"マス ({cell.x}, {cell.y}) の道具を捨てますか？", ct)) Debug.Log($"[arinn sample] ({cell.x}, {cell.y}) を捨てた");
+                }, AwaitOperation.Drop)
                 .AddTo(_disposables);
 
             // Cancel の順序はアプリの方針。このサンプルは「最前面のウィンドウを閉じる」だけ

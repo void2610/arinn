@@ -10,13 +10,15 @@ namespace Void2610.Arinn.Samples
     /// </summary>
     public sealed class SettingsWindow : WindowBase
     {
-        private const int OPTION_COUNT = 12;
-
         public Observable<Unit> OnResetClicked => _reset.OnClickAsObservable();
+
+        private const int OPTION_COUNT = 12;
 
         private Button _close;
         private Button _reset;
         private ScrollRect _scrollRect;
+
+        public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope().OnEdge(NavigationDirection.Right, EdgePolicy.Exit(_close)).WithScrollIntoView(_scrollRect);
 
         public static SettingsWindow Create(Transform parent)
         {
@@ -35,9 +37,5 @@ namespace Void2610.Arinn.Samples
             window._reset = SampleUI.CreateListButton("初期値に戻す", content, 64f);
             return window;
         }
-
-        public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope()
-            .OnEdge(NavigationDirection.Right, EdgePolicy.Exit(_close))
-            .WithScrollIntoView(_scrollRect);
     }
 }
