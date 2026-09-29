@@ -10,7 +10,7 @@
 #### フォーカスとウィンドウ
 
 - `UIFocusManager`：ウィンドウのスタック、開く前のフォーカスの預かりと返却、フォーカスが消えたときの復帰。インスタンスとして生成でき、`Instance` はロケータとして残す
-- `WindowBase`：CanvasGroup で表示と入力の受付を切り替える基底クラス。閉じ始めた時点で入力を切る。既定要素と閉じるボタンはコードでも指定できる
+- `WindowBase`：CanvasGroup で表示と入力の受付を切り替える基底クラス。`Open` / `Close` / `Toggle` で開閉し、閉じ始めた時点で入力を切る。既定要素と閉じるボタンはコードでも指定できる。VContainer に登録すると、コンテナの `UIFocusManager` を注入される
 - `IFocusSource`：ウィンドウと基底画面に共通の、既定要素を返す窓口。`SwitchBase` / `SetBaseFocusSource` で基底画面を設定する
 - 常時表示 UI へのフォーカスの貸し借り（`EnterPersistentUIFocus` / `ExitPersistentUIFocus` / `TogglePersistentUIFocus`）
 - Cancel の部品（`TryCloseTopWindow` / `TryPopScope`）と、入力でウィンドウを開閉する `RegisterToggleAction`
@@ -21,7 +21,8 @@
 
 - `NavigationController`：今のスコープ（最前面のウィンドウ、なければ基底画面）の中だけから移動先を決める。EventSystem の move を止めて自前で解決するので、ウィンドウの背面の UI へ飛ばない
 - `NavigationScope`：スコープの根、端の挙動（`EdgePolicy.Stop` / `Exit` / `WrapRow`）、候補の除外、選択に合わせたスクロール、解決器の差し替えをコードで宣言する
-- スコープを登録していないウィンドウには、ウィンドウの transform を根とする既定のスコープを使う
+- `INavigationScopeSource`：画面が自分のスコープを宣言する。`WindowBase` は既定でウィンドウの transform を根にし、`CreateNavigationScope` のオーバーライドで変えられる。スコープは最初に今の画面になったときに一度だけ作るので、登録の手順が要らない
+- `NavigationController.Register`：外から画面にスコープを結び付ける（画面の宣言より優先する）
 - `SpatialResolver` と `DirectionalResolver`：入力の時点の RectTransform の位置から移動先を決める
 - `DirectionRepeater`：移動入力を 4 方向へ丸め、押し続けたときにリピートする
 - `SetMoveBlocker`：修飾ボタン（LB など）を押している間の方向入力を移動として扱わない
@@ -41,6 +42,6 @@
 #### ドキュメントとサンプル
 
 - チュートリアル（`Documentation~/tutorial.md`）と、既存プロジェクトからの移行ガイド（`Documentation~/migration.md`）
-- サンプル `Minimal`：基底画面、ウィンドウ 2 枚（スクロール一覧と仮想カーソルのグリッド）、確認ダイアログをコードだけで組み立てる
+- サンプル `Minimal`：基底画面、ウィンドウ 2 枚（スクロール一覧と仮想カーソルのグリッド）、確認ダイアログをコードだけで組み立てる。LifetimeScope で arinn と View を登録し、Presenter で画面同士を繋ぐ
 - EditMode テストと、Input System 連携の PlayMode テスト
 - CI（GitHub Actions）：EditMode と PlayMode のテストを回し、サンプルを Assets へ写してコンパイルを確かめる

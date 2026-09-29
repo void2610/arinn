@@ -39,10 +39,56 @@ public sealed class RootLifetimeScope : LifetimeScope
 シーンを跨いでウィンドウを扱うなら、シーンを跨いで生きる親の LifetimeScope に登録する。
 `RegisterArinnNavigation` は `UIFocusManager` をコンストラクタで受け取るので、`RegisterArinn` と同じスコープか、その子に登録する。
 
+### 画面を登録して Presenter で繋ぐ
+
+ウィンドウと基底画面は、シーンの LifetimeScope にコンポーネントとして登録する。
+コンテナに登録したウィンドウは、コンテナの `UIFocusManager` を注入され、`Open()` と `Close()` はそれを使う。
+
+```csharp
+public sealed class BattleLifetimeScope : LifetimeScope
+{
+    [SerializeField] private BattleView battleView;
+    [SerializeField] private PauseView pauseView;
+
+    protected override void Configure(IContainerBuilder builder)
+    {
+        builder.RegisterComponent(battleView);
+        builder.RegisterComponent(pauseView);
+        builder.RegisterEntryPoint<BattlePresenter>();
+    }
+}
+
+public sealed class BattlePresenter : IStartable, IDisposable
+{
+    private readonly UIFocusManager _focusManager;
+    private readonly BattleView _battleView;
+    private readonly PauseView _pauseView;
+    private readonly CompositeDisposable _disposables = new();
+
+    public BattlePresenter(UIFocusManager focusManager, BattleView battleView, PauseView pauseView)
+    {
+        _focusManager = focusManager;
+        _battleView = battleView;
+        _pauseView = pauseView;
+    }
+
+    public void Start()
+    {
+        _focusManager.SwitchBase(_battleView);
+        _battleView.OnPauseClicked.Subscribe(_ => _pauseView.Open()).AddTo(_disposables);
+    }
+
+    public void Dispose() => _disposables.Dispose();
+}
+```
+
+View は互いを参照せず、押されたことを Observable で知らせるだけにする。
+どのウィンドウを開くかは Presenter が決める。
+同梱のサンプル（`Samples~/Minimal`）がこの構成で書いてある。
+
 ### VContainer を使わない場合
 
 自分で生成し、毎フレーム `Tick`、終わりに `Dispose` を呼ぶ。
-同梱のサンプル（`Samples~/Minimal` の `MinimalSample`）がこの形で書いてある。
 
 ```csharp
 public sealed class UIRoot : MonoBehaviour
@@ -70,7 +116,7 @@ public sealed class UIRoot : MonoBehaviour
 }
 ```
 
-どちらの場合も、DI を通さない View からは `UIFocusManager.Instance` と `NavigationController.Instance` で引ける。
+コンテナに登録していないウィンドウの `Open()` と `Close()` は、`UIFocusManager.Instance` を使う。
 `Instance` は最後に生成したインスタンスを指し、Dispose すると null に戻る。
 
 ### EventSystem の入力モジュール
@@ -137,21 +183,33 @@ public sealed class PauseView : WindowBase
 `base.Awake()` は必ず呼ぶ。
 ここでウィンドウを閉じた状態（alpha 0、入力を受け付けない）にするためだ。
 
-### 開閉は UIFocusManager からだけ行う
+### 開いて閉じる
 
-`WindowBase.Show` と `Hide` は `protected internal` で、外からは呼べない。
-開閉は必ず `UIFocusManager` を通す。
+ウィンドウは `Open()` で開き、`Close()` で閉じる。
 
 ```csharp
-manager.ShowWindow(pauseView);
-manager.HideWindow(pauseView);
-manager.ToggleWindow(pauseView);
+pauseView.Open();
+pauseView.Close();
+pauseView.Toggle();
 ```
 
-こうしているのは、表示とフォーカスと入力の受付を同時に変えるためだ。
+中身は `UIFocusManager` の `ShowWindow`、`HideWindow`、`ToggleWindow` で、`manager.ShowWindow(pauseView)` と書いても同じである。
+表示とフォーカスと入力の受付を同時に変えるため、開閉は必ずこの経路を通す。
+`WindowBase` の `Show` と `Hide`（見た目と入力の受付だけを切り替える）は `protected internal` で、外からは呼べない。
 `SetActive` や CanvasGroup を直接触って開くと、見えているのにフォーカスが背面に残る、という状態を作れてしまう。
 
-`ShowWindow` は、開く前に選択していた要素を一緒に積む。
+開く前に準備が要るウィンドウ（確認ダイアログのメッセージなど）は、準備と `Open()` をまとめたメソッドを用意すると呼び出し側が短くなる。
+
+```csharp
+public void Open(string message, Action onYes)
+{
+    _message.text = message;
+    _onYes = onYes;
+    Open();
+}
+```
+
+`Open()` は、開く前に選択していた要素を一緒に積む。
 既定要素へのフォーカスは次のフレームで当たる。
 同じフレームで他の処理がフォーカスを上書きするのを避け、開いた直後に生成される要素も拾えるようにするためだ。
 同じウィンドウを二度開いても、スタックには一度しか積まない。
@@ -162,10 +220,10 @@ manager.ToggleWindow(pauseView);
 購読側で別のウィンドウを開いてもよい。
 
 ```csharp
-resultView.OnWindowClosed.Subscribe(_ => manager.ShowWindow(rewardView)).AddTo(this);
+resultView.OnWindowClosed.Subscribe(_ => rewardView.Open()).AddTo(this);
 ```
 
-`HideWindow` は、閉じる演出の完了を待たずに入力を切る。
+`Close()` は、閉じる演出の完了を待たずに入力を切る。
 フェードの途中で演出が止まっても、見えないウィンドウがクリックを受け続けることはない。
 
 ### Cancel で閉じさせないウィンドウ
@@ -255,7 +313,7 @@ private void OnCancel(InputAction.CallbackContext context)
 {
     if (_focusManager.TryPopScope()) return;          // ウィンドウを閉じる、なければ常時表示 UI から戻る
     if (_shop.IsOpen) { _shop.HandleCancel(); return; } // 画面固有の処理
-    if (context.control.device is Keyboard) _focusManager.ShowWindow(_pauseView);
+    if (context.control.device is Keyboard) _pauseView.Open();
 }
 ```
 
@@ -290,18 +348,24 @@ arinn はウィンドウの外の候補をそもそも返さないので、背�
 移動先は、入力の時点の RectTransform の位置から決める。
 Inspector の Navigation 設定（Automatic や Explicit）は読まない。
 
-スコープを登録していないウィンドウには、そのウィンドウの transform を根とする既定のスコープを使う。
-端の挙動などを変えたいときだけ、次の節のようにスコープを登録すればよい。
+この範囲を **スコープ** と呼ぶ。
+ウィンドウのスコープは、既定でそのウィンドウの transform を根にする。
+何も書かなくても、ウィンドウの中に閉じ込められる。
 
-基底画面は `IFocusSource` なので、根を決められない。
-基底画面でもナビゲーションを任せたいなら、スコープを登録する。
+基底画面は `IFocusSource` なので、arinn からは根を決められない。
+基底画面でもナビゲーションを任せたいなら、`INavigationScopeSource` を実装してスコープを宣言する。
 
 ```csharp
-private void Start() => NavigationController.Instance.Register(this, new NavigationScope(transform));
+public sealed class BattleView : MonoBehaviour, IFocusSource, INavigationScopeSource
+{
+    public GameObject DefaultFocusElement => endTurnButton.gameObject;
+
+    public NavigationScope CreateNavigationScope() => new(transform);
+}
 ```
 
-登録は Awake ではなく Start で行う。
-Awake の時点では、コンテナの構築が済んでいないことがあるからだ。
+`CreateNavigationScope` は、その画面が最初に今の画面になったときに一度だけ呼ばれる。
+Awake や Start で登録する必要はなく、コンテナの構築の順番も気にしなくてよい。
 
 ### 移動先の決め方
 
@@ -314,19 +378,15 @@ Scrollbar はドラッグ用なので候補にしない。
 
 ## 10. スコープで振る舞いを宣言する
 
-端の挙動、候補の除外、スクロールの追従は、スコープにコードで宣言する。
+端の挙動、候補の除外、スクロールの追従は、ウィンドウの `CreateNavigationScope` をオーバーライドして宣言する。
 
 ```csharp
-private void Start()
-{
-    var scope = new NavigationScope(transform)
-        .OnEdge(NavigationDirection.Down, EdgePolicy.Exit(closeButton))
-        .OnEdge(NavigationDirection.Left, EdgePolicy.WrapRow)
-        .OnEdge(NavigationDirection.Right, EdgePolicy.WrapRow)
-        .Exclude(selectable => _tabButtons.Contains(selectable))
-        .WithScrollIntoView(scrollRect);
-    _registration = NavigationController.Instance.Register(this, scope);
-}
+public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope()
+    .OnEdge(NavigationDirection.Down, EdgePolicy.Exit(closeButton))
+    .OnEdge(NavigationDirection.Left, EdgePolicy.WrapRow)
+    .OnEdge(NavigationDirection.Right, EdgePolicy.WrapRow)
+    .Exclude(selectable => _tabButtons.Contains(selectable))
+    .WithScrollIntoView(scrollRect);
 ```
 
 端（その方向に候補がない状態）の挙動は 3 種類ある。
@@ -339,7 +399,14 @@ private void Start()
 LB と RB で切り替えるタブのように、十字キーでは選ばせたくない要素に使う。
 ホバーでは外さないので、マウスでは選べる。
 
-### 登録の後始末
+### 外からスコープを結び付ける
+
+画面のクラスを変えられない場合や、常時表示 UI（HUD）のように今の画面にならない UI には、外から `Register` でスコープを結び付ける。
+`Register` したスコープは、画面が宣言したスコープより優先する。
+
+```csharp
+var registration = navigation.Register(hudView, new NavigationScope(hudRoot));
+```
 
 `Register` は画面ごとに 1 つのスコープを結び付け、登録し直すと置き換える。
 画面が MonoBehaviour なら、破棄されたときに登録は自動で外れる。
@@ -348,7 +415,7 @@ MonoBehaviour でない画面は、返り値の `IDisposable` を Dispose する
 
 ### 移動を Unity に任せる
 
-`new NavigationScope(root, resolvesMove: false)` を登録すると、そのウィンドウでは EventSystem の move を止めず、移動を Unity に任せる。
+`CreateNavigationScope` で `new NavigationScope(transform, resolvesMove: false)` を返すと、そのウィンドウでは EventSystem の move を止めず、移動を Unity に任せる。
 スクロールの追従とホバーの範囲は、スコープの宣言どおりに効く。
 Explicit ナビゲーションを手で組んだ既存の画面を、段階的に移すときに使う。
 
@@ -441,7 +508,7 @@ public sealed class ShopView : WindowBase
         SetDefaultFocusElement(_resolver.Anchor);
     }
 
-    private void Start() => NavigationController.Instance.Register(this, new NavigationScope(transform).UseResolver(_resolver));
+    public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope().UseResolver(_resolver);
 
     protected override void OnDestroy()
     {
@@ -475,9 +542,12 @@ Cancel は通常の経路のままなので、`TryPopScope` でウィンドウ�
 `fallback` に別の `CursorResolver` を渡して重ねると、1 つのスコープに複数のカーソルを置ける。
 
 ```csharp
-var board = new CursorResolver(_boardCursor, boardArea);
-var hand = new CursorResolver(_handCursor, handArea, fallback: board);
-scope.UseResolver(hand);
+// Awake で作る（アンカーを既定要素にするため、スコープより先に要る）
+_boardResolver = new CursorResolver(_boardCursor, boardArea);
+_handResolver = new CursorResolver(_handCursor, handArea, fallback: _boardResolver);
+SetDefaultFocusElement(_handResolver.Anchor);
+
+public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope().UseResolver(_handResolver);
 ```
 
 ## 15. 独自の入力と解決器
@@ -559,7 +629,8 @@ LiminalPalette が入っていれば、`Void2610.Arinn.LiminalPalette` が Edito
 
 ## 17. つまずきやすいところ
 
-- **`NavigationController.Instance` が null になる**：Awake で引いている可能性がある。スコープの登録は Start で行う。
+- **`Open()` が `InvalidOperationException` を投げる**：`UIFocusManager` がまだ生成されていない。ウィンドウをコンテナに登録するか、`RegisterArinn` を登録した LifetimeScope が先に構築されているか確かめる。
+- **`CreateNavigationScope` の変更が効かない**：スコープは最初に今の画面になったときに一度だけ作る。開くたびに変えたい宣言（候補の除外など）は、条件の中で今の状態を読むように書く。
 - **ナビゲーションが背面へ抜ける**：`InputSystemUIInputModule` を使っていないか、`SetInput` を呼んでいない可能性がある。入力がなければ、移動は Unity に任される。基底画面は、スコープを登録しない限り Unity の移動のままになる。
 - **Inspector の Navigation 設定が効かない**：arinn が移動を解決しているスコープでは読まない。端の挙動は `OnEdge` で宣言する。Explicit のまま使いたい画面は `resolvesMove: false` で登録する。
 - **シーンを切り替えたらウィンドウが開かなくなった**：アクティブなシーンが変わると、スタック、基底画面、`IInputScopeGate`、常時表示 UI の状態を捨てる。新しいシーンで `SwitchBase` と `SetInputScopeGate` を呼び直す。

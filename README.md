@@ -70,17 +70,22 @@ public sealed class PauseView : WindowBase
         SetDefaultFocusElement(resumeButton);
         SetCloseButton(resumeButton);
     }
+
+    // 端の挙動などを変えるときだけオーバーライドする。既定でもウィンドウの中に閉じ込められる
+    public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope()
+        .OnEdge(NavigationDirection.Down, EdgePolicy.Exit(resumeButton));
 }
 
-manager.SwitchBase(battleView);   // 基底画面（IFocusSource）を切り替える
-manager.ShowWindow(pauseView);    // 開く。ナビゲーションは pauseView の中に閉じ込められる
-manager.HideWindow(pauseView);    // 閉じて、開く前のフォーカスへ戻す
-if (manager.TryPopScope()) return; // Cancel の既定の処理
+// シーンの LifetimeScope で builder.RegisterComponent(pauseView) し、Presenter から使う
+focusManager.SwitchBase(battleView);     // 基底画面（IFocusSource）を切り替える
+pauseView.Open();                        // 開く。ナビゲーションは pauseView の中に閉じ込められる
+pauseView.Close();                       // 閉じて、開く前のフォーカスへ戻す
+if (focusManager.TryPopScope()) return;  // Cancel の既定の処理
 ```
 
-VContainer を使わない場合は、`new UIFocusManager()` と `new NavigationController(manager)` で作り、毎フレーム `Tick()`、終わりに `Dispose()` を呼ぶ。
-DI を通さない View からは `UIFocusManager.Instance` と `NavigationController.Instance` で引ける。
-詳しくは[チュートリアルの第 1 節](Documentation~/tutorial.md#1-組み込み)にある。
+コンテナに登録したウィンドウは、コンテナの `UIFocusManager` を注入され、`Open()` と `Close()` はそれを使う。
+登録していないウィンドウは `UIFocusManager.Instance` を使う。
+VContainer を使わない構成や、Presenter での繋ぎ方は[チュートリアルの第 1 節](Documentation~/tutorial.md#1-組み込み)にある。
 
 ## フォーカスとウィンドウ
 
@@ -95,6 +100,8 @@ DI を通さない View からは `UIFocusManager.Instance` と `NavigationContr
 |---|---|
 | `closeButton`、`SetCloseButton` | 押すと閉じるボタン。SerializeField でもコードでも指定できる |
 | `defaultFocusElement`、`SetDefaultFocusElement` | 開いたときの既定要素。`DefaultFocusElement` をオーバーライドすれば開くたびに決められる |
+| `Open`、`Close`、`Toggle` | 開閉する。中身は `UIFocusManager` の `ShowWindow`、`HideWindow`、`ToggleWindow` |
+| `CreateNavigationScope` | ナビゲーションのスコープ。既定はウィンドウの transform を根にする。端の挙動などを変えるときにオーバーライドする |
 | `IsClosableByCancelInput` | false にすると Cancel（`TryCloseTopWindow`、`TryPopScope`）で閉じない |
 | `Transition` | このウィンドウだけ遷移を変えるときにオーバーライドする |
 | `OnWindowClosed` | 閉じたときに発火する。購読側で別のウィンドウを開いてよい |
@@ -123,16 +130,17 @@ DI を通さない View からは `UIFocusManager.Instance` と `NavigationContr
 
 ## ナビゲーション
 
-最前面のウィンドウ（なければ、スコープを登録した基底画面）の中で、`NavigationController` が EventSystem の move を止めて移動先を決める。
+最前面のウィンドウ（なければ基底画面）の中で、`NavigationController` が EventSystem の move を止めて移動先を決める。
 移動先は入力の時点の RectTransform の位置から決め、Inspector の Navigation 設定は読まない。
+範囲（スコープ）は画面が宣言する。
+ウィンドウは `CreateNavigationScope` をオーバーライドし、基底画面は `INavigationScopeSource` を実装する。
 
 ```csharp
-var scope = new NavigationScope(transform)                    // この配下の Selectable が候補
+public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope() // この配下の Selectable が候補
     .OnEdge(NavigationDirection.Down, EdgePolicy.Exit(closeButton))
     .OnEdge(NavigationDirection.Right, EdgePolicy.WrapRow)
     .Exclude(selectable => tabButtons.Contains(selectable))
     .WithScrollIntoView(scrollRect);
-var registration = NavigationController.Instance.Register(this, scope); // Start で登録する
 ```
 
 | 宣言 | 動き |
@@ -147,7 +155,7 @@ var registration = NavigationController.Instance.Register(this, scope); // Start
 
 | NavigationController のメンバー | 説明 |
 |---|---|
-| `Register`、`Unregister`、`GetScope` | 画面にスコープを結び付ける。MonoBehaviour の画面なら破棄で自動で外れる |
+| `Register`、`Unregister`、`GetScope` | 外から画面にスコープを結び付ける（画面の宣言より優先する）。常時表示 UI や、クラスを変えられない画面に使う |
 | `SetInput` | 方向入力。`UseInputSystem()` がまとめて設定する |
 | `SetMoveBlocker` | 条件が成り立つ間は方向入力を移動として扱わない（LB を押しながらの十字キーなど） |
 | `EnableHoverSelection`、`DisableHoverSelection` | ポインタが動いたときだけ、最前面に当たった Selectable を選ぶ。スコープの外は選ばない |
@@ -165,9 +173,10 @@ var cursor = new GridCursor(5, 3, cell => !IsSoldOut(cell))    // 止まれな�
     .OnEdge(NavigationDirection.Down, EdgePolicy.Exit(closeButton));
 cursor.OnMoved.Subscribe(Highlight).AddTo(this);
 cursor.OnSubmitted.Subscribe(_ => Buy(cursor.Position)).AddTo(this);
-var resolver = new CursorResolver(cursor, gridArea);
-SetDefaultFocusElement(resolver.Anchor);                        // 開いたらカーソルから始める
-NavigationController.Instance.Register(this, new NavigationScope(transform).UseResolver(resolver));
+_resolver = new CursorResolver(cursor, gridArea);
+SetDefaultFocusElement(_resolver.Anchor);                       // 開いたらカーソルから始める
+
+public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope().UseResolver(_resolver);
 ```
 
 | 型 | 説明 |
@@ -182,6 +191,7 @@ NavigationController.Instance.Register(this, new NavigationScope(transform).UseR
 | インターフェイス | 用途 | 付属の実装 |
 |---|---|---|
 | `IFocusSource` | 既定要素を返す画面 | `WindowBase` |
+| `INavigationScopeSource` | 画面が自分のスコープを宣言する | `WindowBase` |
 | `IWindowTransition` | ウィンドウの見た目の出し入れ | `InstantWindowTransition`、`FadeWindowTransition` |
 | `IInputScopeGate` | ウィンドウの開閉に合わせたゲームプレイ入力の停止 | なし（アプリ側で Action Map を切り替える） |
 | `ISubmitHoldProbe` | 決定が押されたままか | `InputSystemSubmitHoldProbe` |
@@ -215,7 +225,8 @@ arinn の状態は、LiminalPalette の次のコマンドで観測できる。
 ## サンプル
 
 Package Manager の arinn のページの Samples から **Minimal** を Import する。
-空のシーンの GameObject に `MinimalSample` を付けて再生すると、次の構成が UI ごとコードで組み立てられる（Input System が必要）。
+空のシーンの GameObject に `MinimalLifetimeScope` を付けて再生すると、次の構成が UI ごとコードで組み立てられる（Input System が必要）。
+`MinimalLifetimeScope` が arinn と View を登録し、エントリポイントの `MinimalPresenter` が View のイベントを購読してウィンドウを開く。
 
 - **基底画面**（`MenuScreen`）：上下の端で回り込むメニュー。
 - **設定**（`SettingsWindow`）：選択に合わせてスクロールする一覧。右端から右上の閉じるボタンへ抜ける。
