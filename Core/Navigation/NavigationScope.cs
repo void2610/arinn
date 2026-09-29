@@ -54,11 +54,16 @@ namespace Void2610.Arinn
         /// 操作できない（interactable が false の）要素も移動先にするか。既定は false。
         /// </summary>
         public bool IncludesNonInteractable { get; private set; }
-        private static readonly List<CanvasGroup> CanvasGroupBuffer = new();
+
+        /// <summary>
+        /// Scrollbar も移動先にするか。既定は false（Scrollbar はドラッグ用で、カーソル移動の対象にしない）。
+        /// </summary>
+        public bool IncludesScrollbars { get; private set; }
 
         private readonly EdgePolicySet _edges = new();
         private readonly List<Func<Selectable, bool>> _excludes = new();
         private readonly Dictionary<(Selectable From, NavigationDirection Direction), Selectable> _links = new();
+        private readonly HashSet<(Selectable From, NavigationDirection Direction)> _blocks = new();
         private readonly List<(Selectable From, NavigationDirection Direction)> _deadLinks = new();
         private readonly List<(Func<Selectable, bool> Predicate, NavigationAxis Axes)> _elementMoves = new();
 
@@ -94,7 +99,7 @@ namespace Void2610.Arinn
         public bool CanNavigateTo(Selectable selectable)
         {
             if (IsNavigable(selectable)) return true;
-            return IncludesNonInteractable && selectable && selectable.isActiveAndEnabled && selectable.transform is RectTransform && GroupsAllowInteraction(selectable.transform);
+            return IncludesNonInteractable && selectable && selectable.isActiveAndEnabled && selectable.transform is RectTransform && UnityObjects.GroupsAllowInteraction(selectable.transform);
         }
 
         /// <summary>
@@ -103,6 +108,7 @@ namespace Void2610.Arinn
         public Selectable Resolve(Selectable current, NavigationDirection direction)
         {
             if (!ResolvesMove || Resolver == null) return null;
+            if (current && _blocks.Contains((current, direction))) return null;
             var linked = ResolveLink(current, direction);
             return linked ? linked : Resolver.Resolve(this, current, direction);
         }
@@ -143,6 +149,24 @@ namespace Void2610.Arinn
         public NavigationScope WithoutRepeat()
         {
             Repeats = false;
+            return this;
+        }
+
+        /// <summary>
+        /// <see cref="WithoutRepeat"/> を取り消し、押しっぱなしでリピートする。入力の丸め方と同じく、スコープを作った後に切り替えてよい。
+        /// </summary>
+        public NavigationScope WithRepeat()
+        {
+            Repeats = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Scrollbar も移動先にする。十字キーでスクロールさせたい画面では、<see cref="PassMoveToElement"/> で Scrollbar の軸の入力も渡す。
+        /// </summary>
+        public NavigationScope IncludeScrollbars()
+        {
+            IncludesScrollbars = true;
             return this;
         }
 
@@ -197,11 +221,12 @@ namespace Void2610.Arinn
         }
 
         /// <summary>
-        /// <see cref="Link"/> で明示した移動先をすべて外す。要素を作り直す画面で、張り直す前に呼ぶ。
+        /// <see cref="Link"/> と <see cref="Block"/> の宣言をすべて外す。要素を作り直す画面で、張り直す前に呼ぶ。
         /// </summary>
         public NavigationScope ClearLinks()
         {
             _links.Clear();
+            _blocks.Clear();
             return this;
         }
 
@@ -211,6 +236,19 @@ namespace Void2610.Arinn
         public NavigationScope Unlink(Selectable from, NavigationDirection direction)
         {
             _links.Remove((from, direction));
+            _blocks.Remove((from, direction));
+            return this;
+        }
+
+        /// <summary>
+        /// from を選んでいるときに direction を押しても動かない、と明示する（その方向は壁）。<see cref="Link"/>、位置からの導出、端の宣言のどれより優先する。
+        /// 外すときは <see cref="Unlink"/>。
+        /// </summary>
+        public NavigationScope Block(Selectable from, NavigationDirection direction)
+        {
+            if (!from) throw new ArgumentNullException(nameof(from));
+            PruneDeadLinks();
+            _blocks.Add((from, direction));
             return this;
         }
 
@@ -226,7 +264,7 @@ namespace Void2610.Arinn
             foreach (var selectable in Root.GetComponentsInChildren<Selectable>(false))
             {
                 if (selectable == current) continue;
-                if (selectable is Scrollbar) continue;
+                if (selectable is Scrollbar && !IncludesScrollbars) continue;
                 if (!CanNavigateTo(selectable)) continue;
                 if (IsExcluded(selectable)) continue;
                 result.Add(selectable);
@@ -268,29 +306,21 @@ namespace Void2610.Arinn
             return target && target != current && Contains(target) && CanNavigateTo(target) ? target : null;
         }
 
-        // 親の CanvasGroup が操作を止めているか。Selectable.IsInteractable の CanvasGroup の判定だけを取り出したもの
-        private static bool GroupsAllowInteraction(Transform transform)
-        {
-            for (var t = transform; t; t = t.parent)
-            {
-                t.GetComponents(CanvasGroupBuffer);
-                foreach (var group in CanvasGroupBuffer)
-                {
-                    if (!group.enabled) continue;
-                    if (!group.interactable) return false;
-                    if (group.ignoreParentGroups) return true;
-                }
-            }
-            return true;
-        }
-
         private void PruneDeadLinks()
         {
             foreach (var key in _links.Keys)
             {
                 if (!key.From) _deadLinks.Add(key);
             }
-            foreach (var key in _deadLinks) _links.Remove(key);
+            foreach (var key in _blocks)
+            {
+                if (!key.From) _deadLinks.Add(key);
+            }
+            foreach (var key in _deadLinks)
+            {
+                _links.Remove(key);
+                _blocks.Remove(key);
+            }
             _deadLinks.Clear();
         }
 

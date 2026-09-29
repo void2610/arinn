@@ -179,15 +179,23 @@ namespace Void2610.Arinn
 
             var selected = eventSystem ? eventSystem.currentSelectedGameObject : null;
             if (!selected) return null;
-            foreach (var (owner, scope) in _scopes)
-            {
-                if (scope.Contains(selected)) return owner;
-            }
+            // 基底画面の中に常時表示 UI があるときのように入れ子になっていれば、いちばん内側のスコープを使う
+            IFocusSource found = null;
+            NavigationScope foundScope = null;
+            foreach (var (owner, scope) in _scopes) Consider(owner, scope);
             foreach (var (owner, scope) in _declaredScopes)
             {
-                if (scope != null && scope.Contains(selected) && !_scopes.ContainsKey(owner)) return owner;
+                if (!_scopes.ContainsKey(owner)) Consider(owner, scope);
             }
-            return null;
+            return found;
+
+            void Consider(IFocusSource owner, NavigationScope scope)
+            {
+                if (scope == null || !scope.Contains(selected)) return;
+                if (foundScope != null && !(scope.Root && foundScope.Root && scope.Root.IsChildOf(foundScope.Root))) return;
+                found = owner;
+                foundScope = scope;
+            }
         }
 
         private bool IsMoveBlocked => _moveBlocker?.Invoke() == true;
@@ -222,9 +230,9 @@ namespace Void2610.Arinn
                 return;
             }
 
-            // 斜めは水平、垂直の順に 1 歩ずつ動かす
+            // 斜めは水平、垂直の順に 1 歩ずつ動かす。1 歩目で選択が変わったら 2 歩目は打ち切る（仮想カーソルの斜めだけを 2 歩にし、選択が 1 回の入力で 2 度変わらないようにする）
             var moved = MoveOnce(eventSystem, scope, current, step.Value.Primary);
-            if (step.Value.Secondary is { } secondary) MoveOnce(eventSystem, scope, moved, secondary);
+            if (step.Value.Secondary is { } secondary && moved == current) MoveOnce(eventSystem, scope, current, secondary);
         }
 
         /// <summary>
@@ -234,6 +242,8 @@ namespace Void2610.Arinn
         {
             if (scope.PassesMoveToElement(current, direction))
             {
+                // 操作できない要素の OnMove は Unity の移動に落ちてスコープから抜けるため、送らない
+                if (!current.IsInteractable()) return current;
                 var axisData = new AxisEventData(eventSystem) { moveDir = ToMoveDirection(direction), moveVector = ToVector(direction) };
                 ExecuteEvents.Execute(current.gameObject, axisData, ExecuteEvents.moveHandler);
                 return current;

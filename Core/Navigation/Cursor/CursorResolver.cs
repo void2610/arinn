@@ -31,12 +31,17 @@ namespace Void2610.Arinn
         private readonly VirtualCursorAnchor _anchor;
         private readonly INavigationResolver _fallback;
         private readonly IDisposable _subscriptions;
+        private readonly bool _returnsToAnchor;
 
         /// <param name="cursor">動かすカーソル</param>
         /// <param name="area">カーソルが動く範囲。スコープの Root の配下であること。アンカーはこの子に全面で置かれる</param>
         /// <param name="fallback">アンカー以外が選択されているときの解決器。null なら <see cref="SpatialResolver"/></param>
-        public CursorResolver(IVirtualCursor cursor, RectTransform area, INavigationResolver fallback = null)
+        /// <param name="returnsToAnchor">
+        /// true なら、アンカー以外（ホバーで選ばれた HUD のボタンなど）が選択されていても、方向入力でカーソルを動かしてアンカーへ選択を戻す。fallback は使わない
+        /// </param>
+        public CursorResolver(IVirtualCursor cursor, RectTransform area, INavigationResolver fallback = null, bool returnsToAnchor = false)
         {
+            _returnsToAnchor = returnsToAnchor;
             Cursor = cursor ?? throw new ArgumentNullException(nameof(cursor));
             if (!area) throw new ArgumentNullException(nameof(area));
             _fallback = fallback ?? SpatialResolver.Instance;
@@ -48,7 +53,12 @@ namespace Void2610.Arinn
 
         public Selectable Resolve(NavigationScope scope, Selectable current, NavigationDirection direction)
         {
-            if (current != _anchor) return _fallback.Resolve(scope, current, direction);
+            if (current != _anchor && !_returnsToAnchor) return _fallback.Resolve(scope, current, direction);
+            if (current != _anchor)
+            {
+                Cursor.TryMove(direction);
+                return _anchor;
+            }
             if (Cursor.TryMove(direction)) return null;
 
             var edge = Cursor.GetEdge(direction);
