@@ -28,4 +28,9 @@
   <ItemGroup Condition="'$(MSBuildProjectName)' != 'UnityEngine.UI'">
     <ProjectReference Include="$(MSBuildThisFileDirectory)Deps/UnityEngine.UI/UnityEngine.UI.csproj" />
   </ItemGroup>
+
+  <!-- 庭小人と共通のコーディング規約（unity-coding-standards のアナライザ）を arinn のコードにだけかける -->
+  <ItemGroup Condition="$(MSBuildProjectDirectory.Contains('/Arinn/')) and Exists('$(DepsRoot)unity-coding-standards/src/Void2610.Unity.Analyzers/bin/Release/netstandard2.0/Void2610.Unity.Analyzers.dll')">
+    <Analyzer Include="$(DepsRoot)unity-coding-standards/src/Void2610.Unity.Analyzers/bin/Release/netstandard2.0/Void2610.Unity.Analyzers.dll" />
+  </ItemGroup>
 </Project>

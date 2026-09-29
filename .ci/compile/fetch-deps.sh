@@ -14,6 +14,8 @@ fetch UniTask https://github.com/Cysharp/UniTask.git 2.5.11
 fetch R3 https://github.com/Cysharp/R3.git 1.3.1
 fetch VContainer https://github.com/hadashiA/VContainer.git 1.19.0
 fetch LiminalPalette https://github.com/void2610/liminal-palette.git main
+fetch unity-coding-standards https://github.com/void2610/unity-coding-standards.git main
+dotnet build .deps/unity-coding-standards/src/Void2610.Unity.Analyzers/Void2610.Unity.Analyzers.csproj -c Release --nologo -v quiet
 
 # 非公式のリファレンスアセンブリの UnityEngine.UI は protected を public に書き換えてあり、protected override を誤ってエラーにするため、ソースからビルドする
 if [ ! -d .deps/ugui ]; then
