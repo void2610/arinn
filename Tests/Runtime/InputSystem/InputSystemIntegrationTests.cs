@@ -16,6 +16,7 @@ namespace Void2610.Arinn.Tests
     {
         private readonly List<EventSystem> _disabledEventSystems = new();
         private GameObject _eventSystemObject;
+        private InputActionAsset _actions;
         private InputSystemUIInputModule _module;
         private Gamepad _gamepad;
         private Keyboard _keyboard;
@@ -40,6 +41,7 @@ namespace Void2610.Arinn.Tests
         public void TearDownScene()
         {
             if (_eventSystemObject) Object.DestroyImmediate(_eventSystemObject);
+            if (_actions) Object.DestroyImmediate(_actions);
             foreach (var eventSystem in _disabledEventSystems)
             {
                 if (eventSystem) eventSystem.enabled = true;
@@ -181,7 +183,12 @@ namespace Void2610.Arinn.Tests
         {
             _eventSystemObject = new GameObject("EventSystem", typeof(EventSystem));
             _module = _eventSystemObject.AddComponent<InputSystemUIInputModule>();
-            _module.AssignDefaultActions();
+            // 既定のアクションは利用側のプロジェクト全体のアクションに置き換わることがあるので、テスト専用の Navigate を割り当てる
+            _actions = ScriptableObject.CreateInstance<InputActionAsset>();
+            var navigate = _actions.AddActionMap("UI").AddAction("Navigate", InputActionType.PassThrough, "<Gamepad>/dpad", expectedControlLayout: "Vector2");
+            _module.actionsAsset = _actions;
+            _module.move = InputActionReference.Create(navigate);
+            _actions.Enable();
             // EventSystem が Update で module を選ぶのを待つ
             yield return null;
             Assert.That(EventSystem.current.currentInputModule, Is.EqualTo(_module));
