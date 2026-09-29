@@ -233,7 +233,7 @@ Package Manager の arinn のページの Samples から **Minimal** を Import 
 - **持ち物**（`InventoryWindow`）：`GridCursor` のグリッド。鍵のかかったマスを飛ばし、左右は回り込み、下端から閉じるボタンへ抜ける。
 - **確認ダイアログ**（`ConfirmDialog`）：どのウィンドウの上にも重ねて開け、閉じると開いた元のボタンへフォーカスが戻る。
 
-## テストと CI
+## テストとコンパイルの確認
 
 `Tests/Editor` に EditMode テストを、`Tests/Runtime/InputSystem` に Input System 連携の PlayMode テストを同梱している。
 利用側の `Packages/manifest.json` の `testables` に入れると、利用側のテストと一緒に実行される。
@@ -242,6 +242,18 @@ Package Manager の arinn のページの Samples から **Minimal** を Import 
 "testables": ["com.void2610.arinn"]
 ```
 
-このリポジトリの CI（`.github/workflows/test.yml`）は、`.ci/UnityProject` の検証用プロジェクトで EditMode と PlayMode のテストを回す。
-`Samples~` は Unity が読まないので、テストの前にサンプルを Assets へ写し、型の崩れをコンパイルで検出する。
-CI を動かすには、リポジトリの Secrets に `UNITY_LICENSE`、`UNITY_EMAIL`、`UNITY_PASSWORD` を登録する（game-ci の要件）。
+このリポジトリでは、Unity のエディタを起動せずに dotnet でコンパイルだけを確かめる（`.ci/compile/build.sh`）。
+Unity の型は非公式のリファレンスアセンブリ（NuGet の `Digitalroot.References.Unity`）から取り、uGUI と依存ライブラリはソースを取ってきて一緒にビルドする。
+`Samples~` は Unity がコンパイルしないので、サンプルの型の崩れはここで検出する。
+GitHub Actions（`.github/workflows/compile.yml`）でも同じスクリプトを回すので、Secrets の登録は要らない。
+
+```sh
+.ci/compile/build.sh   # dotnet 8 の SDK が要る
+```
+
+コンパイルの確認で見ないものもある。
+
+- **テストの実行**：Unity の中でしか動かない。
+- **`Void2610.Arinn.LitMotion`**：LitMotion が Unity の Burst と Collections に依存していて、ソースから揃えるのが重いため外している。
+- **PlayMode テスト**：Input System のテスト用の仕組み（`InputTestFixture`）がリファレンスアセンブリに入っていないため外している。
+- **アクセス修飾子の誤り**：リファレンスアセンブリは private や internal のメンバーを public に書き換えてあるので、Unity の非公開 API を誤って呼んでもエラーにならない。uGUI はソースからビルドするので、uGUI の protected は正しく検査される。

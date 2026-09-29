@@ -44,4 +44,4 @@
 - チュートリアル（`Documentation~/tutorial.md`）と、既存プロジェクトからの移行ガイド（`Documentation~/migration.md`）
 - サンプル `Minimal`：基底画面、ウィンドウ 2 枚（スクロール一覧と仮想カーソルのグリッド）、確認ダイアログをコードだけで組み立てる。LifetimeScope で arinn と View を登録し、Presenter で画面同士を繋ぐ
 - EditMode テストと、Input System 連携の PlayMode テスト
-- CI（GitHub Actions）：EditMode と PlayMode のテストを回し、サンプルを Assets へ写してコンパイルを確かめる
+- コンパイルの確認（`.ci/compile/build.sh` と GitHub Actions）：Unity を起動せず、非公式のリファレンスアセンブリに対して dotnet でコンパイルする。サンプルとテストも対象にする
