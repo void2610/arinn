@@ -136,7 +136,7 @@ manager.TogglePersistentUIFocus(hudFirstButton, hudRoot); // 同じ owner なら
 
 ## ナビゲーション
 
-スコープを登録した画面では、`NavigationController` が EventSystem の移動を止め、スコープの中の候補から移動先を決める。Inspector の Navigation 設定は読まない。
+ウィンドウ（と、スコープを登録した基底画面）では、`NavigationController` が EventSystem の移動を止め、スコープの中の候補から移動先を決める。Inspector の Navigation 設定は読まない。
 
 ### スコープ
 
@@ -150,10 +150,11 @@ var registration = NavigationController.Instance.Register(this, scope);
 ```
 
 - 今のスコープは、最前面のウィンドウ（なければ基底画面）に登録したもの。常時表示 UI を借りている間は、今の選択を含むスコープ
+- スコープを登録していないウィンドウは、そのウィンドウの `transform` を根とする既定のスコープで封じ込める（登録は端の挙動・除外・解決器を変えたいときだけでよい）。封じ込めを外すなら `resolvesMove: false` のスコープを登録する。スコープを登録していない基底画面は Unity の移動に任せる
 - 候補は Root の配下で、アクティブで、操作できる Selectable。Scrollbar と `Exclude` に当てはまるものは外す
 - 移動先は、入力の時点の RectTransform の位置から決める。進行方向に最も近く、直交する軸で揃っている候補を優先する。段の違う端から斜めの別の段へは飛ばない
 - 選択がスコープの外にあるときに方向を押すと、動かす代わりにスコープの既定要素へ戻す
-- `new NavigationScope(root, resolvesMove: false)` にすると、移動は Unity に任せて選択追従スクロールだけを行う
+- `new NavigationScope(root, resolvesMove: false)` にすると、移動は Unity に任せて選択追従スクロールだけを行う。ホバー選択はスコープの中に絞ったまま
 - 登録は MonoBehaviour の画面なら破棄で自動で外れる。それ以外は返り値の `Dispose` か `Unregister` で外す
 
 ### 端の挙動
