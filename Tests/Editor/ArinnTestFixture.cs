@@ -159,11 +159,12 @@ namespace Void2610.Arinn.Tests
 
     public sealed class TestWindow : WindowBase
     {
-        public override GameObject DefaultFocusElement => Default;
+        public override GameObject DefaultFocusElement => ThrowsOnDefault ? throw new System.InvalidOperationException("既定要素が無い") : Default;
 
         public override bool IsClosableByCancelInput => ClosableByCancel;
 
         public CanvasGroup Group => GetComponent<CanvasGroup>();
+        public bool ThrowsOnDefault;
         public GameObject Default;
         public bool ClosableByCancel = true;
 

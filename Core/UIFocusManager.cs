@@ -80,6 +80,8 @@ namespace Void2610.Arinn
         private IInputScopeGate _inputScopeGate;
         private ISubmitHoldProbe _submitHoldProbe;
         private FocusRequest _pendingFocus;
+        // 常時表示 UI へ移る予約。ウィンドウの予約と取り合わないよう別の枠で持つ
+        private FocusRequest _pendingPersistentFocus;
 
         private GameObject _persistentFocusPrevious;
         private GameObject _persistentFocusOwner;
@@ -222,6 +224,7 @@ namespace Void2610.Arinn
         public void CloseAll()
         {
             _pendingFocus = null;
+            _pendingPersistentFocus = null;
             if (_windowStack.Count == 0) return;
 
             var bottomPreviousFocus = _windowStack[0].PreviousFocus;
@@ -248,6 +251,7 @@ namespace Void2610.Arinn
             // 閉じたウィンドウの購読側が開き直した場合は、そのウィンドウのフォーカスを奪わない
             if (HasOpenWindows) return;
             _pendingFocus = null;
+            _pendingPersistentFocus = null;
             FocusWhenActive(GetDefaultFocusElement(source));
         }
 
@@ -267,7 +271,7 @@ namespace Void2610.Arinn
             _persistentFocusOwner = owner;
             IsInPersistentUIMode = true;
             // 決定との同時押しで移った直後に、決定の離しで移動先が押されないよう、決定が離れるまで待ってから移す
-            _pendingFocus = FocusRequest.NextFrame(() => element, Clock.FrameCount, holdWhile: IsSubmitHeld, isPersistent: true);
+            _pendingPersistentFocus = FocusRequest.NextFrame(() => element, Clock.FrameCount, holdWhile: IsSubmitHeld, isPersistent: true);
         }
 
         /// <summary>
@@ -291,7 +295,7 @@ namespace Void2610.Arinn
             if (!IsInPersistentUIMode) return;
 
             IsInPersistentUIMode = false;
-            if (_pendingFocus is { IsPersistent: true }) _pendingFocus = null;
+            _pendingPersistentFocus = null;
             if (IsFocusable(_persistentFocusPrevious)) SetSelected(_persistentFocusPrevious);
             _persistentFocusPrevious = null;
             _persistentFocusOwner = null;
@@ -304,14 +308,30 @@ namespace Void2610.Arinn
         {
             if (_disposed) return;
 
-            if (_pendingFocus != null)
+            if (_pendingFocus == null && _pendingPersistentFocus == null)
             {
-                ProcessPendingFocus();
-                // 予約の適用を待っている間は、復帰処理と取り合わない
-                _focusLostSince = null;
+                RecoverLostFocus();
                 return;
             }
-            RecoverLostFocus();
+
+            // 予約の適用を待っている間は、復帰処理と取り合わない
+            _focusLostSince = null;
+            if (_pendingFocus != null)
+            {
+                var request = _pendingFocus;
+                // 評価で例外が出ても毎フレーム投げ直さないよう、先に枠から外す
+                _pendingFocus = null;
+                var remaining = ProcessPendingFocus(request);
+                // 選択の通知の中で新しい予約が入っていれば、そちらを残す
+                _pendingFocus ??= remaining;
+            }
+            if (_pendingPersistentFocus != null)
+            {
+                var request = _pendingPersistentFocus;
+                _pendingPersistentFocus = null;
+                var remaining = ProcessPendingFocus(request);
+                _pendingPersistentFocus ??= remaining;
+            }
         }
 
         // Domain Reload を切った環境で、前回のプレイのインスタンスを掴んだままにしない
@@ -382,28 +402,26 @@ namespace Void2610.Arinn
             _pendingFocus = FocusRequest.WhenActive(target, Clock.FrameCount, WAIT_FOR_ACTIVE_MAX_FRAMES);
         }
 
-        private void ProcessPendingFocus()
+        /// <summary>
+        /// 予約を 1 フレーム分進める。まだ待つなら予約を、済んだかあきらめたなら null を返す。
+        /// </summary>
+        private FocusRequest ProcessPendingFocus(FocusRequest request)
         {
-            var request = _pendingFocus;
             var frame = Clock.FrameCount;
-            if (frame < request.NotBeforeFrame) return;
-            if (request.HoldWhile?.Invoke() == true) return;
+            if (frame < request.NotBeforeFrame) return request;
+            if (request.HoldWhile?.Invoke() == true) return request;
 
             var target = request.Resolve();
             if (!target)
             {
-                _pendingFocus = null;
-                return;
+                // 常時表示 UI の行き先が無ければ、借りる前の要素に選択を残さない
+                if (request.IsPersistent && EventSystem.current) EventSystem.current.SetSelectedGameObject(null);
+                return null;
             }
-            if (!target.activeInHierarchy)
-            {
-                if (request.WaitUntilActive && frame < request.GiveUpFrame) return;
-                _pendingFocus = null;
-                return;
-            }
+            if (!target.activeInHierarchy) return request.WaitUntilActive && frame < request.GiveUpFrame ? request : null;
 
-            _pendingFocus = null;
             SetSelected(target);
+            return null;
         }
 
         /// <summary>
@@ -449,6 +467,7 @@ namespace Void2610.Arinn
             // 前のシーンの UI への参照を捨て、新しいシーンで登録し直してもらう
             _windowStack.Clear();
             _pendingFocus = null;
+            _pendingPersistentFocus = null;
             _inputScopeGate = null;
             BaseFocusSource = null;
             _persistentFocusPrevious = null;
@@ -481,6 +500,7 @@ namespace Void2610.Arinn
             _disposed = true;
             SceneManager.activeSceneChanged -= OnActiveSceneChanged;
             _pendingFocus = null;
+            _pendingPersistentFocus = null;
             if (Instance == this) Instance = null;
         }
     }

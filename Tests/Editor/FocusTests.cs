@@ -316,5 +316,40 @@ namespace Void2610.Arinn.Tests
 
             Assert.That(Manager.IsFocusOnDefaultElement, Is.False);
         }
+
+        [Test]
+        public void 既定要素の取得が例外を投げても次のフレームからは投げ直さない()
+        {
+            var window = CreateWindow("A");
+            window.ThrowsOnDefault = true;
+            Manager.ShowWindow(window);
+
+            Assert.Throws<System.InvalidOperationException>(NextFrame);
+            Assert.DoesNotThrow(NextFrame);
+        }
+
+        [Test]
+        public void 常時表示UIへの予約はウィンドウを開いても消えない()
+        {
+            var persistent = Create("Persistent");
+            Manager.EnterPersistentUIFocus(persistent);
+            Manager.ShowWindow(CreateWindow("A"));
+
+            NextFrame();
+
+            Assert.That(Selected, Is.EqualTo(persistent));
+        }
+
+        [Test]
+        public void 常時表示UIの行き先が無ければ選択を外す()
+        {
+            EventSystem.SetSelectedGameObject(Create("Before"));
+
+            Manager.EnterPersistentUIFocus(null, Create("Owner"));
+            NextFrame();
+
+            Assert.That(Selected, Is.Null);
+            Assert.That(Manager.IsInPersistentUIMode, Is.True);
+        }
     }
 }
