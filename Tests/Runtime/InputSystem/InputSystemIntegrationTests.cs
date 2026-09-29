@@ -86,9 +86,11 @@ namespace Void2610.Arinn.Tests
             input.SuppressUnityMove();
 
             Press(_gamepad.dpad.right);
-
+            yield return null;
             Assert.That(input.ReadMove().x, Is.GreaterThan(0.5f));
+
             Release(_gamepad.dpad.right);
+            yield return null;
             Assert.That(input.ReadMove(), Is.EqualTo(Vector2.zero));
         }
 
