@@ -26,6 +26,25 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void GridCursor_skipsBlockedがfalseなら止まれないマスの手前で止まる()
+        {
+            using var cursor = new GridCursor(4, 1, p => p.x != 1, skipsBlocked: false);
+
+            Assert.That(cursor.TryMove(NavigationDirection.Right), Is.False);
+            Assert.That(cursor.Position, Is.EqualTo(Vector2Int.zero));
+        }
+
+        [Test]
+        public void ListCursor_skipsBlockedがfalseなら回り込み先が止まれないとき動かない()
+        {
+            using var cursor = new ListCursor(3, isNavigable: i => i != 0, skipsBlocked: false).OnEdge(NavigationDirection.Right, EdgePolicy.WrapRow);
+            cursor.SetIndex(2);
+
+            Assert.That(cursor.TryMove(NavigationDirection.Right), Is.False);
+            Assert.That(cursor.Index, Is.EqualTo(2));
+        }
+
+        [Test]
         public void GridCursor_端では動かずfalseを返す()
         {
             using var cursor = new GridCursor(2, 2);

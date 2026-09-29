@@ -247,6 +247,117 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void IncludeNonInteractableなら操作できない要素へも移る()
+        {
+            var window = CreateWindow("Window");
+            var first = CreateButton("First", window.transform, new Vector2(0f, 0f));
+            var disabled = CreateButton("Disabled", window.transform, new Vector2(200f, 0f));
+            disabled.interactable = false;
+            OpenWithScope(window, first, new NavigationScope(window.transform).IncludeNonInteractable());
+
+            Press(Vector2.right);
+
+            Assert.That(Selected, Is.EqualTo(disabled.gameObject));
+        }
+
+        [Test]
+        public void IncludeNonInteractableでも親のCanvasGroupで止められた要素へは移らない()
+        {
+            var window = CreateWindow("Window");
+            var first = CreateButton("First", window.transform, new Vector2(0f, 0f));
+            var panel = CreateRootFor("Panel", window.transform);
+            panel.gameObject.AddComponent<CanvasGroup>().interactable = false;
+            CreateButton("Blocked", panel, new Vector2(200f, 0f));
+            OpenWithScope(window, first, new NavigationScope(window.transform).IncludeNonInteractable());
+
+            Press(Vector2.right);
+
+            Assert.That(Selected, Is.EqualTo(first.gameObject));
+        }
+
+        [Test]
+        public void WithoutRepeatなら押しっぱなしでも1歩だけ動く()
+        {
+            var window = CreateWindow("Window");
+            var first = CreateButton("First", window.transform, new Vector2(0f, 0f));
+            var second = CreateButton("Second", window.transform, new Vector2(200f, 0f));
+            CreateButton("Third", window.transform, new Vector2(400f, 0f));
+            OpenWithScope(window, first, new NavigationScope(window.transform).WithoutRepeat());
+
+            _input.Move = Vector2.right;
+            NextNavigationFrame();
+            NextNavigationFrame(1f);
+            NextNavigationFrame(1f);
+
+            Assert.That(Selected, Is.EqualTo(second.gameObject));
+        }
+
+        [Test]
+        public void HorizontalOnlyなら垂直の成分が大きい入力でも左右に動く()
+        {
+            var window = CreateWindow("Window");
+            var first = CreateButton("First", window.transform, new Vector2(0f, 0f));
+            var right = CreateButton("Right", window.transform, new Vector2(200f, 0f));
+            CreateButton("Up", window.transform, new Vector2(0f, 300f));
+            OpenWithScope(window, first, new NavigationScope(window.transform).WithInputMode(NavigationInputMode.HorizontalOnly));
+
+            Press(new Vector2(0.6f, 0.8f));
+
+            Assert.That(Selected, Is.EqualTo(right.gameObject));
+        }
+
+        [Test]
+        public void EightWayなら仮想カーソルが斜めに1歩動く()
+        {
+            var window = CreateWindow("Window");
+            var area = CreateArea(window.transform);
+            using var cursor = new GridCursor(3, 3);
+            using var resolver = new CursorResolver(cursor, area);
+            OpenWithScope(window, resolver.Anchor, new NavigationScope(window.transform).UseResolver(resolver).WithInputMode(NavigationInputMode.EightWay));
+
+            Press(new Vector2(0.7f, -0.7f));
+
+            Assert.That(cursor.Position, Is.EqualTo(new Vector2Int(1, 1)));
+        }
+
+        [Test]
+        public void PassMoveToElementの軸は移動せず要素のOnMoveへ渡す()
+        {
+            var window = CreateWindow("Window");
+            var sliderRect = CreateRootFor("Slider", window.transform);
+            sliderRect.sizeDelta = new Vector2(200f, 40f);
+            var slider = sliderRect.gameObject.AddComponent<Slider>();
+            slider.navigation = new Navigation { mode = Navigation.Mode.None };
+            CreateButton("Right", window.transform, new Vector2(300f, 0f));
+            var below = CreateButton("Below", window.transform, new Vector2(0f, -200f));
+            var scope = new NavigationScope(window.transform).PassMoveToElement(selectable => selectable is Slider, NavigationAxis.Horizontal);
+            OpenWithScope(window, slider, scope);
+
+            Press(Vector2.right);
+            Assert.That(Selected, Is.EqualTo(slider.gameObject), "左右では要素から動かない");
+            Assert.That(slider.value, Is.GreaterThan(0f), "左右は Slider の値の変更になる");
+
+            Press(Vector2.down);
+            Assert.That(Selected, Is.EqualTo(below.gameObject), "渡さない軸は移動する");
+        }
+
+        [Test]
+        public void ClearLinksで明示した移動先をすべて外す()
+        {
+            var window = CreateWindow("Window");
+            var from = CreateButton("From", window.transform, new Vector2(0f, 0f));
+            var near = CreateButton("Near", window.transform, new Vector2(200f, 0f));
+            var linked = CreateButton("Linked", window.transform, new Vector2(0f, -300f));
+            var scope = new NavigationScope(window.transform).Link(from, NavigationDirection.Right, linked);
+            OpenWithScope(window, from, scope);
+
+            scope.ClearLinks();
+            Press(Vector2.right);
+
+            Assert.That(Selected, Is.EqualTo(near.gameObject));
+        }
+
+        [Test]
         public void 操作できない要素は飛ばす()
         {
             var window = CreateWindow("Window");

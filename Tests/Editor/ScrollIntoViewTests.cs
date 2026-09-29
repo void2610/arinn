@@ -15,6 +15,9 @@ namespace Void2610.Arinn.Tests
         public void CalculateAxisDelta_コンテンツの端をビューポートの内側へ入れない() => Assert.That(ScrollIntoView.CalculateAxisDelta(-250f, -200f, -100f, 100f, -220f, 100f), Is.EqualTo(120f));
 
         [Test]
+        public void CalculateAxisDelta_centerなら見えている要素も中央へ寄せる() => Assert.That(ScrollIntoView.CalculateAxisDelta(20f, 60f, -100f, 100f, -500f, 500f, center: true), Is.EqualTo(-40f));
+
+        [Test]
         public void CalculateAxisDelta_ビューポートに収まるコンテンツはスクロールしない() => Assert.That(ScrollIntoView.CalculateAxisDelta(-250f, -200f, -100f, 100f, -90f, 90f), Is.Zero);
     }
 
@@ -28,6 +31,16 @@ namespace Void2610.Arinn.Tests
             ScrollIntoView.EnsureVisible(scrollRect, (RectTransform)hidden.transform);
 
             Assert.That(content.anchoredPosition.y, Is.EqualTo(575f).Within(0.01f));
+        }
+
+        [Test]
+        public void EnsureVisible_centerなら要素をビューポートの中央へ寄せる()
+        {
+            var (scrollRect, content, _, hidden) = ScrollFixtures.CreateList(this, CreateRoot("Root"));
+
+            ScrollIntoView.EnsureVisible(scrollRect, (RectTransform)hidden.transform, center: true);
+
+            Assert.That(content.anchoredPosition.y, Is.EqualTo(650f).Within(0.01f));
         }
 
         [Test]
