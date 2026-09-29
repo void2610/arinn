@@ -1,17 +1,20 @@
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using R3;
 using UnityEngine;
 using UnityEngine.UI;
+using VContainer;
 
 namespace Void2610.Arinn
 {
     /// <summary>
     /// ウィンドウの基底クラス。CanvasGroup で表示・入力受付をまとめて切り替える。
-    /// 開閉は <see cref="UIFocusManager"/> の ShowWindow / HideWindow からだけ行う（表示・フォーカス・入力を一緒に変えるため）。
+    /// 開閉は <see cref="Open"/> / <see cref="Close"/>（中身は <see cref="UIFocusManager"/> の ShowWindow / HideWindow）で行う（表示・フォーカス・入力を一緒に変えるため）。
+    /// ナビゲーションのスコープは <see cref="CreateNavigationScope"/> で宣言する。
     /// </summary>
     [RequireComponent(typeof(CanvasGroup))]
-    public abstract class WindowBase : MonoBehaviour, IFocusSource
+    public abstract class WindowBase : MonoBehaviour, IFocusSource, INavigationScopeSource
     {
         [SerializeField] protected Button closeButton;
         [SerializeField] protected Selectable defaultFocusElement;
@@ -44,6 +47,7 @@ namespace Void2610.Arinn
         protected virtual IWindowTransition Transition => null;
 
         private readonly Subject<Unit> _onWindowClosed = new();
+        private UIFocusManager _focusManager;
         private CanvasGroup _canvasGroup;
         private CancellationTokenSource _transitionCts;
         private Button _boundCloseButton;
@@ -53,7 +57,28 @@ namespace Void2610.Arinn
         private CanvasGroup Group => _canvasGroup ? _canvasGroup : _canvasGroup = GetComponent<CanvasGroup>();
 
         /// <summary>
-        /// 開く。外からは <see cref="UIFocusManager.ShowWindow"/> を使う。
+        /// 開く。開く前に選択していた要素を預け、次のフレームで既定要素へフォーカスする。既に開いていれば何もしない。
+        /// </summary>
+        public void Open() => RequireManager().ShowWindow(this);
+
+        /// <summary>
+        /// 閉じて、開く前のフォーカスへ戻す。
+        /// </summary>
+        public void Close() => RequireManager().HideWindow(this);
+
+        /// <summary>
+        /// 開いていれば閉じ、閉じていれば開く。
+        /// </summary>
+        public void Toggle() => RequireManager().ToggleWindow(this);
+
+        /// <summary>
+        /// このウィンドウのナビゲーションのスコープ。最初に最前面になったときに一度だけ呼ばれる。
+        /// 既定はこのウィンドウの transform を根とするスコープ。端の挙動・除外・スクロール・解決器を変えるときはオーバーライドする。
+        /// </summary>
+        public virtual NavigationScope CreateNavigationScope() => new(transform);
+
+        /// <summary>
+        /// 表示と入力の受付を開いた状態にする。外からは <see cref="Open"/> を使う。
         /// </summary>
         protected internal virtual void Show()
         {
@@ -65,7 +90,7 @@ namespace Void2610.Arinn
         }
 
         /// <summary>
-        /// 閉じる。外からは <see cref="UIFocusManager.HideWindow"/> を使う。
+        /// 表示と入力の受付を閉じた状態にする。外からは <see cref="Close"/> を使う。
         /// </summary>
         protected internal virtual void Hide()
         {
@@ -108,7 +133,16 @@ namespace Void2610.Arinn
             _onWindowClosed.Dispose();
         }
 
-        private void OnCloseButtonClicked() => UIFocusManager.Instance?.HideWindow(this);
+        // VContainer に登録したウィンドウは、コンテナの UIFocusManager を使う
+        [Inject]
+        private void InjectFocusManager(UIFocusManager focusManager) => _focusManager = focusManager;
+
+        private UIFocusManager FocusManager => _focusManager ?? UIFocusManager.Instance;
+
+        private void OnCloseButtonClicked() => FocusManager?.HideWindow(this);
+
+        private UIFocusManager RequireManager() =>
+            FocusManager ?? throw new InvalidOperationException("UIFocusManager が生成されていない。RegisterArinn で登録するか new UIFocusManager() で生成する");
 
         private void BindCloseButton(Button button)
         {
@@ -135,7 +169,7 @@ namespace Void2610.Arinn
         {
             CancelTransition();
             _transitionCts = new CancellationTokenSource();
-            var transition = Transition ?? UIFocusManager.Instance?.DefaultTransition ?? InstantWindowTransition.Instance;
+            var transition = Transition ?? FocusManager?.DefaultTransition ?? InstantWindowTransition.Instance;
             RunTransitionAsync(transition, show, _transitionCts.Token).Forget();
         }
 

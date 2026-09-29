@@ -9,7 +9,8 @@ namespace Void2610.Arinn
     /// ナビゲーションの範囲（ウィンドウや基底画面の中）と、その中での振る舞いの宣言。
     /// 移動先の候補は Root の配下の Selectable だけで、Inspector の Navigation 設定は参照しない。
     /// 端の挙動・除外・解決器・スクロール追従はすべてコードで宣言する。
-    /// <see cref="NavigationController.Register"/> でウィンドウ（<see cref="WindowBase"/>）や基底画面（<see cref="IFocusSource"/>）と結び付ける。
+    /// 画面が <see cref="INavigationScopeSource.CreateNavigationScope"/> で宣言するか（<see cref="WindowBase"/> はオーバーライドする）、
+    /// <see cref="NavigationController.Register"/> で画面と結び付ける。
     /// </summary>
     public sealed class NavigationScope
     {
