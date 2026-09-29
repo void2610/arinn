@@ -1,0 +1,30 @@
+{
+    "name": "Void2610.Arinn.Samples.Minimal",
+    "rootNamespace": "Void2610.Arinn.Samples",
+    "references": [
+        "Void2610.Arinn",
+        "Void2610.Arinn.InputSystem",
+        "Unity.InputSystem",
+        "UnityEngine.UI",
+        "UniTask",
+        "R3.Unity",
+        "VContainer"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "ARINN_SAMPLE_INPUT_SYSTEM"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.inputsystem",
+            "expression": "",
+            "define": "ARINN_SAMPLE_INPUT_SYSTEM"
+        }
+    ],
+    "noEngineReferences": false
+}

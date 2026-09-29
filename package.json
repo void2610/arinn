@@ -4,6 +4,15 @@
   "displayName": "arinn",
   "description": "UI focus and navigation management for Unity uGUI — window stack, borrowed focus, focus watchdog, scoped navigation.",
   "unity": "6000.0",
-  "author": { "name": "void2610" },
-  "license": "MIT"
+  "author": {
+    "name": "void2610"
+  },
+  "license": "MIT",
+  "samples": [
+    {
+      "displayName": "Minimal",
+      "description": "基底画面・ウィンドウ 2 枚（スクロール一覧 / 仮想カーソルのグリッド）・確認ダイアログをコードだけで組み立てる最小構成。Input System が必要。",
+      "path": "Samples~/Minimal"
+    }
+  ]
 }
