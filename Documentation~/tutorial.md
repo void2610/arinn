@@ -396,6 +396,22 @@ public override NavigationScope CreateNavigationScope() => base.CreateNavigation
 LB と RB で切り替えるタブのように、十字キーでは選ばせたくない要素に使う。
 ホバーでは外さないので、マウスでは選べる。
 
+### 移動先を明示する
+
+見た目の並びと操作の順番を意図的にずらしたい箇所（重なった手札の端、装飾で位置がずれたボタン、タブと中身の行き来など）は、`Link` で移動先を明示する。
+
+```csharp
+public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope()
+    .Link(tabButton, NavigationDirection.Down, firstItem)
+    .Link(firstItem, NavigationDirection.Up, tabButton);
+```
+
+`Link` は、位置からの導出と端の宣言より優先する。
+向きごとに 1 つずつ宣言するので、行き来させたいなら両方向を書く。
+移動先が非アクティブや操作できないときは、明示した移動先で止めずに位置からの導出に戻る（売り切れの枠などで行き止まりにしないため）。
+移動先がスコープの外なら、封じ込めを優先して無視する。
+外すときは `Unlink` を呼ぶ。
+
 ### 外からスコープを結び付ける
 
 画面のクラスを変えられない場合や、常時表示 UI（HUD）のように今の画面にならない UI には、外から `Register` でスコープを結び付ける。

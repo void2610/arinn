@@ -19,7 +19,7 @@
 #### ナビゲーション
 
 - `NavigationController`：今のスコープ（最前面のウィンドウ、なければ基底画面）の中だけから移動先を決める。EventSystem の move を止めて自前で解決するので、ウィンドウの背面の UI へ飛ばない
-- `NavigationScope`：スコープの根、端の挙動（`EdgePolicy.Stop` / `Exit` / `WrapRow`）、候補の除外、選択に合わせたスクロール、解決器の差し替えをコードで宣言する
+- `NavigationScope`：スコープの根、端の挙動（`EdgePolicy.Stop` / `Exit` / `WrapRow`）、候補の除外、要素ごとの移動先の明示（`Link`）、選択に合わせたスクロール、解決器の差し替えをコードで宣言する
 - `INavigationScopeSource`：画面が自分のスコープを宣言する。`WindowBase` は既定でウィンドウの transform を根にし、`CreateNavigationScope` のオーバーライドで変えられる。スコープは最初に今の画面になったときに一度だけ作るので、登録の手順が要らない
 - `NavigationController.Register`：外から画面にスコープを結び付ける（画面の宣言より優先する）
 - `SpatialResolver` と `DirectionalResolver`：入力の時点の RectTransform の位置から移動先を決める

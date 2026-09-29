@@ -147,6 +147,7 @@ public override NavigationScope CreateNavigationScope() => base.CreateNavigation
 | `EdgePolicy.Exit(target)` | 端から指定した要素へ抜ける。抜け先がスコープの外、操作できない、非アクティブ、自分自身なら止まる |
 | `EdgePolicy.WrapRow` | 同じ行（上下の移動なら列）の反対側の端へ回り込む |
 | `Exclude(predicate)` | 候補から外す。ホバーでは外さない |
+| `Link(from, direction, to)`、`Unlink` | from で direction を押したら to へ移る、と明示する。位置からの導出と端の宣言より優先し、to が選べないときは導出に戻る |
 | `WithScrollIntoView(scrollRect)` | 選択した要素が見える位置までスクロールする。ホバーでの選択には追従しない |
 | `UseResolver(resolver)` | 移動先の決め方を差し替える |
 | `new NavigationScope(root, resolvesMove: false)` | 移動を Unity に任せる。スクロールとホバーの範囲は効く |
