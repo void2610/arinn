@@ -58,6 +58,44 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void スコープを登録していないウィンドウも背面の要素へは移らない()
+        {
+            var window = CreateWindow("Window");
+            var inside = CreateButton("Inside", window.transform, new Vector2(0f, 0f));
+            CreateButton("Outside", CreateRoot("Background"), new Vector2(200f, 0f));
+            window.Default = inside.gameObject;
+            Manager.ShowWindow(window);
+            NextNavigationFrame();
+
+            Press(Vector2.right);
+
+            Assert.That(Selected, Is.EqualTo(inside.gameObject));
+            Assert.That(_input.IsSuppressed, Is.True, "Unity の Automatic ナビゲーションにも任せない");
+        }
+
+        [Test]
+        public void スコープを登録していないウィンドウはウィンドウの範囲がホバーの対象になる()
+        {
+            var window = CreateWindow("Window");
+            window.Default = CreateButton("Inside", window.transform, Vector2.zero).gameObject;
+            Manager.ShowWindow(window);
+            NextNavigationFrame();
+
+            Assert.That(_navigation.ActiveScope?.Root, Is.EqualTo(window.transform));
+        }
+
+        [Test]
+        public void 移動を解決しないスコープを登録したウィンドウはUnityの移動に任せる()
+        {
+            var window = CreateWindow("Window");
+            var item = CreateButton("Item", window.transform, Vector2.zero);
+            OpenWithScope(window, item, new NavigationScope(window.transform, resolvesMove: false));
+
+            Assert.That(_input.IsSuppressed, Is.False);
+            Assert.That(_navigation.ActiveScope?.Root, Is.EqualTo(window.transform), "ホバーの範囲はウィンドウに絞ったまま");
+        }
+
+        [Test]
         public void 操作できない要素は飛ばす()
         {
             var window = CreateWindow("Window");
