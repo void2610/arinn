@@ -416,5 +416,78 @@ namespace Void2610.Arinn.Tests
             Assert.That(Selected, Is.Null);
             Assert.That(Manager.IsInPersistentUIMode, Is.True);
         }
+
+        [Test]
+        public void TogglePersistentUIFocus_同じownerでもう一度呼ぶと借りる前のフォーカスへ戻る()
+        {
+            var before = Create("Before");
+            EventSystem.SetSelectedGameObject(before);
+            var owner = Create("Owner");
+            var persistent = Create("Persistent");
+
+            Manager.TogglePersistentUIFocus(persistent, owner);
+            NextFrame();
+            Assert.That(Selected, Is.EqualTo(persistent));
+
+            Manager.TogglePersistentUIFocus(persistent, owner);
+
+            Assert.That(Selected, Is.EqualTo(before));
+            Assert.That(Manager.IsInPersistentUIMode, Is.False);
+        }
+
+        [Test]
+        public void TogglePersistentUIFocus_別のownerなら借りる前のフォーカスを保ったまま借り直す()
+        {
+            var before = Create("Before");
+            EventSystem.SetSelectedGameObject(before);
+            var firstOwner = Create("FirstOwner");
+            var secondOwner = Create("SecondOwner");
+            var first = Create("First");
+            var second = Create("Second");
+
+            Manager.TogglePersistentUIFocus(first, firstOwner);
+            NextFrame();
+            Manager.TogglePersistentUIFocus(second, secondOwner);
+            Assert.That(Selected, Is.EqualTo(second));
+            Assert.That(Manager.IsInPersistentUIMode, Is.True);
+
+            Manager.TogglePersistentUIFocus(second, secondOwner);
+
+            Assert.That(Selected, Is.EqualTo(before), "借り直しても、戻り先は最初に借りる前の要素");
+        }
+
+        [Test]
+        public void 常時表示UIを借りている間はフォーカスが消えても戻さない()
+        {
+            EventSystem.SetSelectedGameObject(Create("Before"));
+            Manager.EnterPersistentUIFocus(Create("Persistent"));
+            NextFrame();
+
+            EventSystem.SetSelectedGameObject(null);
+            AdvanceSeconds(0f);
+            AdvanceSeconds(1f);
+
+            Assert.That(Selected, Is.Null);
+        }
+
+        [Test]
+        public void フォーカスが消えて待っている間に直前の要素がアクティブに戻ればすぐ戻す()
+        {
+            var baseScreen = CreateBase("Base");
+            Manager.SetBaseFocusSource(baseScreen);
+            var target = Create("Target");
+            EventSystem.SetSelectedGameObject(target);
+            NextFrame();
+            target.SetActive(false);
+            EventSystem.SetSelectedGameObject(null);
+            AdvanceSeconds(0f);
+            AdvanceSeconds(0.2f);
+            Assert.That(Selected, Is.Null, "待ち時間の途中");
+
+            target.SetActive(true);
+            NextFrame();
+
+            Assert.That(Selected, Is.EqualTo(target), "既定要素ではなく直前の要素へ戻す");
+        }
     }
 }
