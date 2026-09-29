@@ -17,5 +17,17 @@ namespace Void2610.Arinn
             builder.RegisterEntryPoint<UIFocusManager>().AsSelf();
             if (configure != null) builder.RegisterBuildCallback(resolver => configure(resolver.Resolve<UIFocusManager>()));
         }
+
+        /// <summary>
+        /// <see cref="NavigationController"/> をエントリポイントとして登録する。
+        /// <see cref="RegisterArinn"/> と同じ LifetimeScope か、その子に登録する。
+        /// </summary>
+        /// <param name="builder">登録先</param>
+        /// <param name="configure">生成直後の設定（入力・ホバー選択・移動を止める条件など）</param>
+        public static void RegisterArinnNavigation(this IContainerBuilder builder, Action<NavigationController> configure = null)
+        {
+            builder.RegisterEntryPoint<NavigationController>().AsSelf();
+            if (configure != null) builder.RegisterBuildCallback(resolver => configure(resolver.Resolve<NavigationController>()));
+        }
     }
 }
