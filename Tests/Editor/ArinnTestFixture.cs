@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace Void2610.Arinn.Tests
 {
@@ -19,6 +20,7 @@ namespace Void2610.Arinn.Tests
 
         private readonly List<GameObject> _created = new();
         private FakeClock _clock;
+        private NavigationController _navigation;
 
         [SetUp]
         public void SetUpFixture()
@@ -34,6 +36,8 @@ namespace Void2610.Arinn.Tests
         [TearDown]
         public void TearDownFixture()
         {
+            _navigation?.Dispose();
+            _navigation = null;
             Manager.Dispose();
             InvokeEventSystem("OnDisable");
             foreach (var go in _created)
@@ -58,6 +62,49 @@ namespace Void2610.Arinn.Tests
             _clock.UnscaledTime += seconds;
             _clock.FrameCount++;
             Manager.Tick();
+        }
+
+        /// <summary>
+        /// マネージャーと同じ時計で動くナビゲーションを作る。テストの終わりに破棄される。
+        /// </summary>
+        protected NavigationController CreateNavigation(INavigationInput input = null)
+        {
+            _navigation = new NavigationController(Manager) { Clock = _clock };
+            if (input != null) _navigation.SetInput(input);
+            return _navigation;
+        }
+
+        /// <summary>
+        /// 1 フレーム進めて、マネージャーとナビゲーションを Tick する。
+        /// </summary>
+        protected void NextNavigationFrame(float seconds = 0f)
+        {
+            _clock.UnscaledTime += seconds;
+            _clock.FrameCount++;
+            Manager.Tick();
+            _navigation?.Tick();
+        }
+
+        /// <summary>
+        /// 親の下に、指定した位置と大きさのボタンを作る。
+        /// </summary>
+        protected Button CreateButton(string name, Transform parent, Vector2 position, Vector2? size = null)
+        {
+            var go = Create(name);
+            var rect = go.AddComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size ?? new Vector2(100f, 50f);
+            return go.AddComponent<Button>();
+        }
+
+        /// <summary>
+        /// RectTransform を持つ空の根を作る。
+        /// </summary>
+        protected RectTransform CreateRoot(string name)
+        {
+            var go = Create(name);
+            return go.AddComponent<RectTransform>();
         }
 
         protected GameObject Create(string name)
@@ -114,6 +161,33 @@ namespace Void2610.Arinn.Tests
         public void OnFirstWindowOpened() => Opened++;
 
         public void OnLastWindowClosed() => Closed++;
+    }
+
+    public sealed class FakeNavigationInput : INavigationInput
+    {
+        public Vector2 Move;
+        public int SuppressCount;
+        public int RestoreCount;
+        public bool IsSuppressed;
+
+        public float RepeatDelay { get; set; } = 0.5f;
+
+        public float RepeatRate { get; set; } = 0.1f;
+
+        public Vector2 ReadMove() => Move;
+
+        public void SuppressUnityMove()
+        {
+            SuppressCount++;
+            IsSuppressed = true;
+        }
+
+        public void RestoreUnityMove()
+        {
+            if (!IsSuppressed) return;
+            RestoreCount++;
+            IsSuppressed = false;
+        }
     }
 
     public sealed class FakeSubmitProbe : ISubmitHoldProbe
