@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -13,6 +14,7 @@ namespace Void2610.Arinn.Tests
     /// </summary>
     public sealed class InputSystemIntegrationTests : InputTestFixture
     {
+        private readonly List<EventSystem> _disabledEventSystems = new();
         private GameObject _eventSystemObject;
         private InputSystemUIInputModule _module;
         private Gamepad _gamepad;
@@ -20,17 +22,29 @@ namespace Void2610.Arinn.Tests
 
         // 基底の SetUp（入力の隔離）の後に走る
         [SetUp]
-        public void AddDevices()
+        public void SetUpScene()
         {
+            // 利用側のプロジェクトで先に走ったテストの EventSystem が残っていると、テストで作ったものが EventSystem.current にならない
+            foreach (var eventSystem in Object.FindObjectsByType<EventSystem>(FindObjectsSortMode.None))
+            {
+                if (!eventSystem.enabled) continue;
+                eventSystem.enabled = false;
+                _disabledEventSystems.Add(eventSystem);
+            }
             _gamepad = InputSystem.AddDevice<Gamepad>();
             _keyboard = InputSystem.AddDevice<Keyboard>();
         }
 
         // 基底の TearDown（入力の復元）の前に走る
         [TearDown]
-        public void DestroyEventSystem()
+        public void TearDownScene()
         {
             if (_eventSystemObject) Object.DestroyImmediate(_eventSystemObject);
+            foreach (var eventSystem in _disabledEventSystems)
+            {
+                if (eventSystem) eventSystem.enabled = true;
+            }
+            _disabledEventSystems.Clear();
         }
 
         [UnityTest]
