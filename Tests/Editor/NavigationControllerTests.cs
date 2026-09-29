@@ -171,6 +171,82 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void Linkで明示した移動先は位置からの導出より優先する()
+        {
+            var window = CreateWindow("Window");
+            var from = CreateButton("From", window.transform, new Vector2(0f, 0f));
+            CreateButton("Near", window.transform, new Vector2(200f, 0f));
+            var linked = CreateButton("Linked", window.transform, new Vector2(0f, -300f));
+            OpenWithScope(window, from, new NavigationScope(window.transform).Link(from, NavigationDirection.Right, linked));
+
+            Press(Vector2.right);
+
+            Assert.That(Selected, Is.EqualTo(linked.gameObject));
+        }
+
+        [Test]
+        public void Linkの移動先が操作できなければ位置からの導出に戻る()
+        {
+            var window = CreateWindow("Window");
+            var from = CreateButton("From", window.transform, new Vector2(0f, 0f));
+            var near = CreateButton("Near", window.transform, new Vector2(200f, 0f));
+            var linked = CreateButton("Linked", window.transform, new Vector2(0f, -300f));
+            linked.interactable = false;
+            OpenWithScope(window, from, new NavigationScope(window.transform).Link(from, NavigationDirection.Right, linked));
+
+            Press(Vector2.right);
+
+            Assert.That(Selected, Is.EqualTo(near.gameObject));
+        }
+
+        [Test]
+        public void Linkの移動先がスコープの外なら無視する()
+        {
+            var window = CreateWindow("Window");
+            var from = CreateButton("From", window.transform, new Vector2(0f, 0f));
+            var near = CreateButton("Near", window.transform, new Vector2(200f, 0f));
+            var outside = CreateButton("Outside", CreateRoot("Background"), new Vector2(0f, -300f));
+            OpenWithScope(window, from, new NavigationScope(window.transform).Link(from, NavigationDirection.Right, outside));
+
+            Press(Vector2.right);
+
+            Assert.That(Selected, Is.EqualTo(near.gameObject));
+        }
+
+        [Test]
+        public void Unlinkで位置からの導出に戻る()
+        {
+            var window = CreateWindow("Window");
+            var from = CreateButton("From", window.transform, new Vector2(0f, 0f));
+            var near = CreateButton("Near", window.transform, new Vector2(200f, 0f));
+            var linked = CreateButton("Linked", window.transform, new Vector2(0f, -300f));
+            var scope = new NavigationScope(window.transform).Link(from, NavigationDirection.Right, linked);
+            OpenWithScope(window, from, scope);
+
+            scope.Unlink(from, NavigationDirection.Right);
+            Press(Vector2.right);
+
+            Assert.That(Selected, Is.EqualTo(near.gameObject));
+        }
+
+        [Test]
+        public void Linkは端の宣言より優先する()
+        {
+            var window = CreateWindow("Window");
+            var from = CreateButton("From", window.transform, new Vector2(0f, 0f));
+            var linked = CreateButton("Linked", window.transform, new Vector2(0f, 300f));
+            var exit = CreateButton("Exit", window.transform, new Vector2(0f, -300f));
+            var scope = new NavigationScope(window.transform)
+                .OnEdge(NavigationDirection.Right, EdgePolicy.Exit(exit))
+                .Link(from, NavigationDirection.Right, linked);
+            OpenWithScope(window, from, scope);
+
+            Press(Vector2.right);
+
+            Assert.That(Selected, Is.EqualTo(linked.gameObject));
+        }
+
+        [Test]
         public void 操作できない要素は飛ばす()
         {
             var window = CreateWindow("Window");

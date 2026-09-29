@@ -37,6 +37,7 @@ namespace Void2610.Arinn
 
         private readonly EdgePolicySet _edges = new();
         private readonly List<Func<Selectable, bool>> _excludes = new();
+        private readonly Dictionary<(Selectable From, NavigationDirection Direction), Selectable> _links = new();
 
         public NavigationScope(Transform root, bool resolvesMove = true)
         {
@@ -60,14 +61,19 @@ namespace Void2610.Arinn
         public bool Contains(GameObject target) => target && Contains(target.transform);
 
         /// <summary>
-        /// current から direction へ移動した先を返す。移動先が無ければ（端で止まる場合や解決器が内部で処理した場合を含む）null。
-        /// </summary>
-        public Selectable Resolve(Selectable current, NavigationDirection direction) => ResolvesMove && Resolver != null ? Resolver.Resolve(this, current, direction) : null;
-
-        /// <summary>
         /// 選択先にできる要素か。アクティブで、操作でき、RectTransform を持つこと。
         /// </summary>
         public static bool IsNavigable(Selectable selectable) => selectable && selectable.isActiveAndEnabled && selectable.IsInteractable() && selectable.transform is RectTransform;
+
+        /// <summary>
+        /// current から direction へ移動した先を返す。移動先が無ければ（端で止まる場合や解決器が内部で処理した場合を含む）null。
+        /// </summary>
+        public Selectable Resolve(Selectable current, NavigationDirection direction)
+        {
+            if (!ResolvesMove || Resolver == null) return null;
+            var linked = ResolveLink(current, direction);
+            return linked ? linked : Resolver.Resolve(this, current, direction);
+        }
 
         /// <summary>
         /// 解決器を差し替える。仮想カーソルを使う画面では <see cref="CursorResolver"/> を渡す。
@@ -106,6 +112,26 @@ namespace Void2610.Arinn
         }
 
         /// <summary>
+        /// from を選んでいるときに direction を押したら to へ移る、と明示する。位置からの自動の導出より優先する。
+        /// to が非アクティブや操作できないときは自動の導出に戻り、スコープの外なら無視する。同じ from と direction で呼び直すと置き換わる。
+        /// </summary>
+        public NavigationScope Link(Selectable from, NavigationDirection direction, Selectable to)
+        {
+            if (!from) throw new ArgumentNullException(nameof(from));
+            _links[(from, direction)] = to;
+            return this;
+        }
+
+        /// <summary>
+        /// <see cref="Link"/> で明示した移動先を外し、自動の導出に戻す。
+        /// </summary>
+        public NavigationScope Unlink(Selectable from, NavigationDirection direction)
+        {
+            _links.Remove((from, direction));
+            return this;
+        }
+
+        /// <summary>
         /// 移動先の候補を集める。Root の配下で、操作でき、除外に当てはまらない要素。
         /// Scrollbar はドラッグ操作用でカーソル移動の対象にしない。
         /// </summary>
@@ -137,6 +163,13 @@ namespace Void2610.Arinn
         private bool Contains(Transform target)
         {
             return Root && target.IsChildOf(Root);
+        }
+
+        // 行き先が今選べないときは、明示した移動先で止めずに自動の導出へ戻す（売り切れの枠などで行き止まりにしない）
+        private Selectable ResolveLink(Selectable current, NavigationDirection direction)
+        {
+            if (!current || !_links.TryGetValue((current, direction), out var target)) return null;
+            return target && target != current && Contains(target) && IsNavigable(target) ? target : null;
         }
 
         private bool IsExcluded(Selectable selectable)
