@@ -1,0 +1,31 @@
+<Project>
+  <!-- Unity のエディタを起動せずに、asmdef と同じ単位で C# のコンパイルだけを確かめる -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>$(NoWarn);CS0649;CS0169;CS0414;CS1591;CS0618;NU1701</NoWarn>
+    <DefineConstants>$(DefineConstants);UNITY_5_3_OR_NEWER;UNITY_5_4_OR_NEWER;UNITY_5_5_OR_NEWER;UNITY_5_6_OR_NEWER;UNITY_2017_1_OR_NEWER;UNITY_2017_2_OR_NEWER;UNITY_2017_3_OR_NEWER;UNITY_2017_4_OR_NEWER;UNITY_2018_1_OR_NEWER;UNITY_2018_2_OR_NEWER;UNITY_2018_3_OR_NEWER;UNITY_2018_4_OR_NEWER;UNITY_2019_1_OR_NEWER;UNITY_2019_2_OR_NEWER;UNITY_2019_3_OR_NEWER;UNITY_2019_4_OR_NEWER;UNITY_2020_1_OR_NEWER;UNITY_2020_2_OR_NEWER;UNITY_2020_3_OR_NEWER;UNITY_2021_1_OR_NEWER;UNITY_2021_2_OR_NEWER;UNITY_2021_3_OR_NEWER;UNITY_2022_1_OR_NEWER;UNITY_2022_2_OR_NEWER;UNITY_2022_3_OR_NEWER;UNITY_2023_1_OR_NEWER;UNITY_2023_2_OR_NEWER;UNITY_6000_0_OR_NEWER;UNITY_6000_0;ENABLE_MONO;NET_STANDARD;NET_STANDARD_2_1;CSHARP_7_3_OR_NEWER</DefineConstants>
+    <RepoRoot>$(MSBuildThisFileDirectory)../../</RepoRoot>
+    <DepsRoot>$(MSBuildThisFileDirectory).deps/</DepsRoot>
+    <UnityReferenceVersion>6000.0.75</UnityReferenceVersion>
+  </PropertyGroup>
+
+  <!-- 非公式の Unity のリファレンスアセンブリ。net48 向けのため PackageReference では取り込めず、ダウンロードだけして直接参照する -->
+  <ItemGroup>
+    <PackageDownload Include="Digitalroot.References.Unity" Version="[$(UnityReferenceVersion)]" />
+  </ItemGroup>
+  <!-- NuGetPackageRoot は restore 後の props で決まるので、プロパティではなくアイテムの中で組み立てる -->
+  <ItemGroup Condition="'$(NuGetPackageRoot)' != ''">
+    <Reference Include="$(NuGetPackageRoot)digitalroot.references.unity/$(UnityReferenceVersion)/ref/net48/*.dll"
+               Exclude="$(NuGetPackageRoot)digitalroot.references.unity/$(UnityReferenceVersion)/ref/net48/UnityEngine.UI-publicized.dll;$(NuGetPackageRoot)digitalroot.references.unity/$(UnityReferenceVersion)/ref/net48/Unity.TextMeshPro-publicized.dll"
+               Private="false" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'UnityEngine.UI'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Deps/UnityEngine.UI/UnityEngine.UI.csproj" />
+  </ItemGroup>
+</Project>

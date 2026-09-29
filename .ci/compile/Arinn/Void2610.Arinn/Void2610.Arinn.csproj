@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Void2610.Arinn</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)AssemblyInfo.cs" />
+    <Compile Include="$(RepoRoot)Core/**/*.cs" />
+    <Compile Include="$(RepoRoot)Integration/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Deps/UniTask/UniTask.csproj" />
+    <ProjectReference Include="../../Deps/R3.Unity/R3.Unity.csproj" />
+    <ProjectReference Include="../../Deps/VContainer/VContainer.csproj" />
+  </ItemGroup>
+</Project>

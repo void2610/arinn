@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Void2610.Arinn.LiminalPalette</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);ARINN_LIMINAL_PALETTE;DEVELOPMENT_BUILD</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)LiminalPalette/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Void2610.Arinn/Void2610.Arinn.csproj" />
+    <ProjectReference Include="../../Deps/LiminalPalette/Void2610.LiminalPalette.csproj" />
+  </ItemGroup>
+</Project>

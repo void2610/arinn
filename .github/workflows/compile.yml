@@ -1,0 +1,30 @@
+name: Compile
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.nuget/packages
+            .ci/compile/.deps
+          key: compile-${{ hashFiles('.ci/compile/fetch-deps.sh', '.ci/compile/**/*.csproj', '.ci/compile/Directory.Build.props') }}
+
+      # Unity のエディタは起動せず、非公式のリファレンスアセンブリに対して dotnet でコンパイルだけを確かめる
+      - run: .ci/compile/build.sh

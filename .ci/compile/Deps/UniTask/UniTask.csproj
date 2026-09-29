@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>UniTask</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);UNITASK_ASSETBUNDLE_SUPPORT;UNITASK_PHYSICS_SUPPORT;UNITASK_PHYSICS2D_SUPPORT;UNITASK_PARTICLESYSTEM_SUPPORT;UNITASK_UGUI_SUPPORT;UNITASK_WEBREQUEST_SUPPORT</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(DepsRoot)UniTask/src/UniTask/Assets/Plugins/UniTask/Runtime/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+
+  </ItemGroup>
+</Project>

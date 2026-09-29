@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>UnityEngine.UI</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(DepsRoot)ugui/package/Runtime/UGUI/**/*.cs" />
+  </ItemGroup>
+</Project>

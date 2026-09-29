@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Void2610.Arinn.Samples.Minimal</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);ARINN_SAMPLE_INPUT_SYSTEM</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)Samples~/Minimal/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Void2610.Arinn/Void2610.Arinn.csproj" />
+    <ProjectReference Include="../Void2610.Arinn.InputSystem/Void2610.Arinn.InputSystem.csproj" />
+  </ItemGroup>
+</Project>

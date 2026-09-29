@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>VContainer</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);VCONTAINER_UNITASK_INTEGRATION</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(DepsRoot)VContainer/VContainer/Assets/VContainer/Runtime/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../UniTask/UniTask.csproj" />
+  </ItemGroup>
+</Project>

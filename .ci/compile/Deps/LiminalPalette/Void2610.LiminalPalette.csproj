@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Void2610.LiminalPalette</AssemblyName>
+  </PropertyGroup>
+  <!-- 本体は Unity 6000.3 の API を使っていて 6000.0 のリファレンスではビルドできないため、arinn が使う属性の定義だけを取り込む -->
+  <ItemGroup>
+    <Compile Include="$(DepsRoot)LiminalPalette/Attributes/**/*.cs" />
+  </ItemGroup>
+</Project>
