@@ -149,8 +149,10 @@ public override NavigationScope CreateNavigationScope() => base.CreateNavigation
 | `Exclude(predicate)` | 候補から外す。ホバーでは外さない |
 | `Link(from, direction, to)`、`Unlink`、`ClearLinks` | from で direction を押したら to へ移る、と明示する。位置からの導出と端の宣言より優先し、to が選べないときは導出に戻る |
 | `IncludeNonInteractable()` | 操作できない（interactable が false の）要素も移動先にする。親の CanvasGroup で止められた要素は含めない |
+| `IncludeScrollbars()` | Scrollbar も移動先にする（既定では外す） |
+| `Block(from, direction)` | from で direction を押しても動かない、と明示する（壁）。`Link`、位置からの導出、端の宣言のどれより優先する |
 | `WithInputMode(mode)` | 移動入力の丸め方。`FourWay`（既定）、`FourWayPreferVertical`、`HorizontalOnly`、`VerticalOnly`、`EightWay`（斜めを水平、垂直の 2 歩にする） |
-| `WithoutRepeat()` | 押しっぱなしでもリピートせず、押し直したときだけ 1 歩動かす |
+| `WithoutRepeat()`、`WithRepeat()` | 押しっぱなしでもリピートせず、押し直したときだけ 1 歩動かす。後から戻せる |
 | `PassMoveToElement(predicate, axes)` | 当てはまる要素を選んでいる間、その軸の入力を移動ではなく要素の OnMove へ渡す（スライダーの左右など） |
 | `WithScrollIntoView(scrollRect, center)` | 選択した要素が見える位置までスクロールする。center なら中央へ寄せる。ホバーでの選択には追従しない |
 | `UseResolver(resolver)` | 移動先の決め方を差し替える |
@@ -186,7 +188,7 @@ public override NavigationScope CreateNavigationScope() => base.CreateNavigation
 |---|---|
 | `GridCursor` | 格子。位置は (列, 行) で、左上が (0, 0)。`skipsBlocked: false` なら止まれないマスを飛び越えず手前で止まる |
 | `ListCursor` | 一列。並びと直交する方向の入力は端として扱う。`skipsBlocked` は `GridCursor` と同じ |
-| `CursorResolver` | アンカー以外が選択されているときは `fallback`（既定は `SpatialResolver`）に任せる。重ねれば 1 画面に複数のカーソルを置ける |
+| `CursorResolver` | アンカー以外が選択されているときは `fallback`（既定は `SpatialResolver`）に任せる。重ねれば 1 画面に複数のカーソルを置ける。`returnsToAnchor: true` なら、何が選ばれていても方向入力でカーソルを動かしてアンカーへ戻す |
 | `IVirtualCursor`、`VirtualCursor` | 独自のカーソルを作るときの窓口と基底クラス |
 
 ## 拡張点

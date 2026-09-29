@@ -235,7 +235,7 @@ public override bool IsClosableByCancelInput => false;
 
 ウィンドウを閉じたときのフォーカスの戻り先は、次の規則で決まる。
 
-- **上のウィンドウを閉じた**：開く前に選択していた要素へ戻る。その要素が消えているか操作できなければ、新しく最前面になったウィンドウの既定要素へ移る。
+- **上のウィンドウを閉じた**：開く前に選択していた要素へ戻る。その要素が消えていれば、新しく最前面になったウィンドウの既定要素へ移る。押せないだけの要素（売り切れの商品など）へは戻すが、閉じたウィンドウの中の要素（親の CanvasGroup で操作を止められている要素）へは戻さない。
 - **下のウィンドウを閉じた**：最前面のフォーカスは動かない。
 - **最後のウィンドウを閉じた**：基底画面があれば、その既定要素へ戻る。基底画面がなければ、開く前に選択していた要素へ戻る。
 
@@ -247,7 +247,7 @@ public override bool IsClosableByCancelInput => false;
 `currentSelectedGameObject` は、要素の非アクティブ化や破棄、マウスでの空クリックで日常的に null になる。
 arinn はこれを防ごうとせず、消えたら戻す。
 
-- 直前に選択していた要素がまだ操作できれば、すぐに戻す。
+- 直前に選択していた要素がまだ生きていれば、すぐに戻す（押せないだけの要素を含む）。
 - 直前の要素も消えていれば、`FocusRecoveryDelaySeconds`（既定 0.5 秒）待ってから、最前面のウィンドウの既定要素へ戻す。ウィンドウがなければ基底画面の既定要素へ戻す。
 
 待つのは、画面の切り替え中に一瞬だけ選択が外れる場合に、無関係な要素へ飛ばないようにするためだ。
@@ -434,10 +434,11 @@ public override NavigationScope CreateNavigationScope() => base.CreateNavigation
 - **`FourWayPreferVertical`**：絶対値の大きい軸の 1 方向。同じなら垂直。
 - **`HorizontalOnly`**：水平の成分だけを見る。垂直の成分が大きくても、水平の成分が閾値を超えていれば左右として扱う（手札の左右選択など）。
 - **`VerticalOnly`**：垂直の成分だけを見る。
-- **`EightWay`**：水平と垂直を別々に判定する。両方あれば斜めとして、水平、垂直の順に 1 歩ずつ動かす（格子の仮想カーソルを斜めに動かすとき）。
+- **`EightWay`**：水平と垂直を別々に判定する。両方あれば斜めとして、水平、垂直の順に 1 歩ずつ動かす（格子の仮想カーソルを斜めに動かすとき）。1 歩目で選択が変わったとき（ボタン間の移動や、カーソルから `Exit` で抜けたとき）は 2 歩目を行わない。
 
 押しっぱなしのリピートを止めたい画面（タイルのカーソルなど、1 回の押下で 1 歩だけ動かしたい画面）では、`WithoutRepeat` を宣言する。
 押し直すか、向きを変えたときだけ動く。
+入力の丸め方もリピートの有無も、スコープを作った後に切り替えてよい（戦闘画面でカーソルのモードを切り替えるときなど）。`WithRepeat` で元に戻せる。
 
 ```csharp
 public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope()
@@ -459,6 +460,7 @@ public override NavigationScope CreateNavigationScope() => base.CreateNavigation
 
 Unity の Slider は、その方向に Navigation の移動先があると値を変えずに移動してしまう。
 渡す要素の Navigation は None にしておく。
+操作できない要素には、Move イベントを送らない（Unity の移動に落ちてスコープから抜けるため）。
 
 ### 外からスコープを結び付ける
 
@@ -473,6 +475,32 @@ var registration = navigation.Register(hudView, new NavigationScope(hudRoot));
 画面が MonoBehaviour なら、破棄されたときに登録は自動で外れる。
 MonoBehaviour でない画面は、返り値の `IDisposable` を Dispose するか、`Unregister` を呼んで外す。
 登録し直した後に古い返り値を Dispose しても、新しいスコープは外れない。
+
+### 壁を宣言する
+
+位置では隣があっても、その方向へは動かしたくない箇所は `Block` で壁にする。
+
+```csharp
+public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope()
+    .Block(skipButton, NavigationDirection.Left)
+    .Block(skipButton, NavigationDirection.Right);
+```
+
+`Block` は、`Link`、位置からの導出、端の宣言のどれより優先する。
+外すときは `Unlink`、まとめて外すときは `ClearLinks` を呼ぶ。
+
+### Scrollbar を十字キーで動かす
+
+Scrollbar はドラッグ用なので、既定では移動先にしない。
+クレジットの長文のように、十字キーでスクロールさせたい画面では、`IncludeScrollbars` で移動先に入れ、`PassMoveToElement` でその軸の入力を Scrollbar に渡す。
+Scrollbar の Navigation は None にしておく（Slider と同じく、その方向に移動先があると値を変えずに移動してしまう）。
+
+```csharp
+public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope()
+    .IncludeScrollbars()
+    .PassMoveToElement(selectable => selectable is Scrollbar, NavigationAxis.Vertical)
+    .Link(scrollbar, NavigationDirection.Left, closeButton);
+```
 
 ### 移動を Unity に任せる
 
@@ -602,6 +630,10 @@ Cancel は通常の経路のままなので、`TryPopScope` でウィンドウ�
 
 `CursorResolver` は、アンカー以外が選択されているときの解決を `fallback`（既定は座標で解決する `SpatialResolver`）に任せる。
 `fallback` に別の `CursorResolver` を渡して重ねると、1 つのスコープに複数のカーソルを置ける。
+
+ホバーで HUD のボタンが選ばれた後でも、方向入力はカーソルに向けたい画面（盤面のカーソルが主役の戦闘画面など）では、`returnsToAnchor: true` を渡す。
+アンカー以外が選択されていても、方向入力でカーソルを動かし、選択をアンカーへ戻す。
+この指定をした解決器は `fallback` を使わない。
 
 ```csharp
 // Awake で作る（アンカーを既定要素にするため、スコープより先に要る）
