@@ -1,5 +1,7 @@
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Void2610.Arinn.Tests
 {
@@ -163,6 +165,156 @@ namespace Void2610.Arinn.Tests
             AdvanceSeconds(0.6f);
 
             Assert.That(Selected, Is.EqualTo(baseScreen.Default));
+        }
+
+        [Test]
+        public void HideWindow_下のウィンドウを閉じても最前面のフォーカスは動かない()
+        {
+            var a = CreateWindow("A");
+            Manager.ShowWindow(a);
+            NextFrame();
+            var b = CreateWindow("B");
+            Manager.ShowWindow(b);
+            NextFrame();
+
+            Manager.HideWindow(a);
+
+            Assert.That(Selected, Is.EqualTo(b.Default));
+            Assert.That(Manager.TopWindow, Is.EqualTo(b));
+        }
+
+        [Test]
+        public void HideWindow_上を閉じたとき戻り先が消えていれば新しい最前面の既定要素へ戻す()
+        {
+            var a = CreateWindow("A");
+            Manager.ShowWindow(a);
+            NextFrame();
+            var inner = Create("A/Inner");
+            EventSystem.SetSelectedGameObject(inner);
+            var b = CreateWindow("B");
+            Manager.ShowWindow(b);
+            NextFrame();
+            inner.SetActive(false);
+
+            Manager.HideWindow(b);
+
+            Assert.That(Selected, Is.EqualTo(a.Default));
+        }
+
+        [Test]
+        public void 非アクティブな既定要素は上限のフレーム数を過ぎたら待つのをあきらめる()
+        {
+            var next = CreateBase("Next");
+            next.Default.SetActive(false);
+            Manager.SwitchBase(next);
+
+            for (var i = 0; i < 121; i++) NextFrame();
+            next.Default.SetActive(true);
+            NextFrame();
+
+            Assert.That(Selected, Is.Not.EqualTo(next.Default));
+        }
+
+        [Test]
+        public void 非アクティブな既定要素は上限のフレーム数の内ならアクティブになった時点でフォーカスする()
+        {
+            var next = CreateBase("Next");
+            next.Default.SetActive(false);
+            Manager.SwitchBase(next);
+
+            for (var i = 0; i < 119; i++) NextFrame();
+            next.Default.SetActive(true);
+            NextFrame();
+
+            Assert.That(Selected, Is.EqualTo(next.Default));
+        }
+
+        [Test]
+        public void シーンが切り替わるとスタックと基底画面と常時表示UIの状態を捨てる()
+        {
+            var gate = new CountingGate();
+            Manager.SetInputScopeGate(gate);
+            Manager.SetBaseFocusSource(CreateBase("Base"));
+            Manager.EnterPersistentUIFocus(Create("Persistent"));
+            Manager.ShowWindow(CreateWindow("A"));
+
+            typeof(UIFocusManager)
+                .GetMethod("OnActiveSceneChanged", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(Manager, new object[] { default(Scene), default(Scene) });
+
+            Assert.That(Manager.HasOpenWindows, Is.False);
+            Assert.That(Manager.BaseFocusSource, Is.Null);
+            Assert.That(Manager.IsInPersistentUIMode, Is.False);
+
+            // 入力の窓口も捨てているので、次に開閉しても前のシーンの窓口は呼ばれない
+            var window = CreateWindow("B");
+            Manager.ShowWindow(window);
+            Manager.HideWindow(window);
+            Assert.That(gate.Opened, Is.EqualTo(1));
+            Assert.That(gate.Closed, Is.Zero);
+        }
+
+        [Test]
+        public void CloseAll_すべて閉じて基底画面へ戻し入力の窓口の閉じる側を1回呼ぶ()
+        {
+            var gate = new CountingGate();
+            Manager.SetInputScopeGate(gate);
+            var baseScreen = CreateBase("Base");
+            Manager.SetBaseFocusSource(baseScreen);
+            var a = CreateWindow("A");
+            var b = CreateWindow("B");
+            Manager.ShowWindow(a);
+            Manager.ShowWindow(b);
+            NextFrame();
+
+            Manager.CloseAll();
+
+            Assert.That(Manager.HasOpenWindows, Is.False);
+            Assert.That(a.IsVisible, Is.False);
+            Assert.That(b.IsVisible, Is.False);
+            Assert.That(Selected, Is.EqualTo(baseScreen.Default));
+            Assert.That(gate.Closed, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void WindowCount_開いているウィンドウの数を返す()
+        {
+            Manager.ShowWindow(CreateWindow("A"));
+            var b = CreateWindow("B");
+            Manager.ShowWindow(b);
+            Assert.That(Manager.WindowCount, Is.EqualTo(2));
+
+            Manager.HideWindow(b);
+            Assert.That(Manager.WindowCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void IsFocusOnDefaultElement_最前面のウィンドウの既定要素にあるときだけtrue()
+        {
+            var window = CreateWindow("A");
+            Manager.ShowWindow(window);
+            NextFrame();
+            Assert.That(Manager.IsFocusOnDefaultElement, Is.True);
+
+            EventSystem.SetSelectedGameObject(Create("Other"));
+            Assert.That(Manager.IsFocusOnDefaultElement, Is.False);
+        }
+
+        [Test]
+        public void IsFocusOnDefaultElement_ウィンドウが無ければ基底画面の既定要素で判定する()
+        {
+            var baseScreen = CreateBase("Base");
+            Manager.SwitchBase(baseScreen);
+
+            Assert.That(Manager.IsFocusOnDefaultElement, Is.True);
+        }
+
+        [Test]
+        public void IsFocusOnDefaultElement_何も選択していなければfalse()
+        {
+            Manager.SetBaseFocusSource(CreateBase("Base"));
+
+            Assert.That(Manager.IsFocusOnDefaultElement, Is.False);
         }
     }
 }
