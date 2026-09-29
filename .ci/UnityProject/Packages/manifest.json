@@ -1,0 +1,35 @@
+{
+  "scopedRegistries": [
+    {
+      "name": "Unity NuGet",
+      "url": "https://unitynuget-registry.openupm.com",
+      "scopes": [
+        "org.nuget"
+      ]
+    }
+  ],
+  "dependencies": {
+    "com.void2610.arinn": "file:../../..",
+    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
+    "com.cysharp.r3": "https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity",
+    "org.nuget.r3": "1.3.1",
+    "jp.hadashikick.vcontainer": "https://github.com/hadashiA/VContainer.git?path=VContainer/Assets/VContainer",
+    "com.annulusgames.lit-motion": "https://github.com/AnnulusGames/LitMotion.git?path=src/LitMotion/Assets/LitMotion",
+    "com.void2610.liminal-palette": "https://github.com/void2610/liminal-palette.git",
+    "com.unity.inputsystem": "1.18.0",
+    "com.unity.test-framework": "1.4.5",
+    "com.unity.ugui": "2.0.0",
+    "com.unity.modules.animation": "1.0.0",
+    "com.unity.modules.audio": "1.0.0",
+    "com.unity.modules.imgui": "1.0.0",
+    "com.unity.modules.jsonserialize": "1.0.0",
+    "com.unity.modules.physics": "1.0.0",
+    "com.unity.modules.physics2d": "1.0.0",
+    "com.unity.modules.ui": "1.0.0",
+    "com.unity.modules.uielements": "1.0.0",
+    "com.unity.modules.unitywebrequest": "1.0.0"
+  },
+  "testables": [
+    "com.void2610.arinn"
+  ]
+}

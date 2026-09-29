@@ -1,0 +1,58 @@
+name: Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+  checks: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: ${{ matrix.testMode }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        testMode: [ editmode, playmode ]
+    env:
+      PROJECT_PATH: .ci/UnityProject
+    steps:
+      - uses: actions/checkout@v4
+
+      # Samples~ は Unity が読まないので、利用側が Import したときと同じく Assets へ写してコンパイルさせる
+      - name: Import samples
+        run: |
+          mkdir -p "$PROJECT_PATH/Assets/Samples"
+          cp -R "Samples~/Minimal" "$PROJECT_PATH/Assets/Samples/Minimal"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.PROJECT_PATH }}/Library
+          key: Library-${{ matrix.testMode }}-${{ hashFiles('.ci/UnityProject/Packages/manifest.json', '.ci/UnityProject/ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: Library-${{ matrix.testMode }}-
+
+      - uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: ${{ env.PROJECT_PATH }}
+          testMode: ${{ matrix.testMode }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: ${{ matrix.testMode }} test results
+          artifactsPath: artifacts-${{ matrix.testMode }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.testMode }}
+          path: artifacts-${{ matrix.testMode }}

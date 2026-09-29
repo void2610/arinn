@@ -1,0 +1,8 @@
+/Library/
+/Temp/
+/Logs/
+/UserSettings/
+/Assets/
+/Packages/packages-lock.json
+/ProjectSettings/*
+!/ProjectSettings/ProjectVersion.txt
