@@ -39,23 +39,15 @@ public sealed class RootLifetimeScope : LifetimeScope
 シーンを跨いでウィンドウを扱うなら、シーンを跨いで生きる親の LifetimeScope に登録する。
 `RegisterArinnNavigation` は `UIFocusManager` をコンストラクタで受け取るので、`RegisterArinn` と同じスコープか、その子に登録する。
 
-### 画面を登録して Presenter で繋ぐ
+### Presenter で画面を繋ぐ
 
-ウィンドウと基底画面は、シーンの LifetimeScope にコンポーネントとして登録する。
-コンテナに登録したウィンドウは、コンテナの `UIFocusManager` を注入され、`Open()` と `Close()` はそれを使う。
+View（ウィンドウと基底画面）はコンテナに登録しない。
+シーンの LifetimeScope には Presenter だけを登録し、Presenter がコンストラクタで `FindFirstObjectByType` を使って View を取得する。
 
 ```csharp
 public sealed class BattleLifetimeScope : LifetimeScope
 {
-    [SerializeField] private BattleView battleView;
-    [SerializeField] private PauseView pauseView;
-
-    protected override void Configure(IContainerBuilder builder)
-    {
-        builder.RegisterComponent(battleView);
-        builder.RegisterComponent(pauseView);
-        builder.RegisterEntryPoint<BattlePresenter>();
-    }
+    protected override void Configure(IContainerBuilder builder) => builder.RegisterEntryPoint<BattlePresenter>();
 }
 
 public sealed class BattlePresenter : IStartable, IDisposable
@@ -65,11 +57,11 @@ public sealed class BattlePresenter : IStartable, IDisposable
     private readonly PauseView _pauseView;
     private readonly CompositeDisposable _disposables = new();
 
-    public BattlePresenter(UIFocusManager focusManager, BattleView battleView, PauseView pauseView)
+    public BattlePresenter(UIFocusManager focusManager)
     {
         _focusManager = focusManager;
-        _battleView = battleView;
-        _pauseView = pauseView;
+        _battleView = UnityEngine.Object.FindFirstObjectByType<BattleView>();
+        _pauseView = UnityEngine.Object.FindFirstObjectByType<PauseView>();
     }
 
     public void Start()
@@ -82,9 +74,14 @@ public sealed class BattlePresenter : IStartable, IDisposable
 }
 ```
 
+View が見つからないときの null チェックはしない。
+見つからなければ最初のアクセスで null 参照の例外になり、原因がすぐ分かるからだ。
 View は互いを参照せず、押されたことを Observable で知らせるだけにする。
 どのウィンドウを開くかは Presenter が決める。
 同梱のサンプル（`Samples~/Minimal`）がこの構成で書いてある。
+
+ウィンドウの `Open()` と `Close()` は、`UIFocusManager.Instance`（`RegisterArinn` で生成したインスタンス）を使う。
+ウィンドウを VContainer で注入する構成にした場合は、注入された `UIFocusManager` を優先して使う。
 
 ### VContainer を使わない場合
 
@@ -116,7 +113,7 @@ public sealed class UIRoot : MonoBehaviour
 }
 ```
 
-コンテナに登録していないウィンドウの `Open()` と `Close()` は、`UIFocusManager.Instance` を使う。
+この場合も、ウィンドウの `Open()` と `Close()` は `UIFocusManager.Instance` を使う。
 `Instance` は最後に生成したインスタンスを指し、Dispose すると null に戻る。
 
 ### EventSystem の入力モジュール
@@ -629,7 +626,7 @@ LiminalPalette が入っていれば、`Void2610.Arinn.LiminalPalette` が Edito
 
 ## 17. つまずきやすいところ
 
-- **`Open()` が `InvalidOperationException` を投げる**：`UIFocusManager` がまだ生成されていない。ウィンドウをコンテナに登録するか、`RegisterArinn` を登録した LifetimeScope が先に構築されているか確かめる。
+- **`Open()` が `InvalidOperationException` を投げる**：`UIFocusManager` がまだ生成されていない。`RegisterArinn` を登録した LifetimeScope が先に構築されているか確かめる（Awake から `Open()` を呼んでいないかも確かめる）。
 - **`CreateNavigationScope` の変更が効かない**：スコープは最初に今の画面になったときに一度だけ作る。開くたびに変えたい宣言（候補の除外など）は、条件の中で今の状態を読むように書く。
 - **ナビゲーションが背面へ抜ける**：`InputSystemUIInputModule` を使っていないか、`SetInput` を呼んでいない可能性がある。入力がなければ、移動は Unity に任される。基底画面は、スコープを登録しない限り Unity の移動のままになる。
 - **Inspector の Navigation 設定が効かない**：arinn が移動を解決しているスコープでは読まない。端の挙動は `OnEdge` で宣言する。Explicit のまま使いたい画面は `resolvesMove: false` で登録する。

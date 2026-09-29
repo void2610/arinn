@@ -76,15 +76,15 @@ public sealed class PauseView : WindowBase
         .OnEdge(NavigationDirection.Down, EdgePolicy.Exit(resumeButton));
 }
 
-// シーンの LifetimeScope で builder.RegisterComponent(pauseView) し、Presenter から使う
+// Presenter（View はコンストラクタで FindFirstObjectByType して取得する）
 focusManager.SwitchBase(battleView);     // 基底画面（IFocusSource）を切り替える
 pauseView.Open();                        // 開く。ナビゲーションは pauseView の中に閉じ込められる
 pauseView.Close();                       // 閉じて、開く前のフォーカスへ戻す
 if (focusManager.TryPopScope()) return;  // Cancel の既定の処理
 ```
 
-コンテナに登録したウィンドウは、コンテナの `UIFocusManager` を注入され、`Open()` と `Close()` はそれを使う。
-登録していないウィンドウは `UIFocusManager.Instance` を使う。
+ウィンドウの `Open()` と `Close()` は `UIFocusManager.Instance`（`RegisterArinn` で生成したインスタンス）を使う。
+ウィンドウを VContainer で注入する構成なら、注入された `UIFocusManager` を優先して使う。
 VContainer を使わない構成や、Presenter での繋ぎ方は[チュートリアルの第 1 節](Documentation~/tutorial.md#1-組み込み)にある。
 
 ## フォーカスとウィンドウ
@@ -226,7 +226,7 @@ arinn の状態は、LiminalPalette の次のコマンドで観測できる。
 
 Package Manager の arinn のページの Samples から **Minimal** を Import する。
 空のシーンの GameObject に `MinimalLifetimeScope` を付けて再生すると、次の構成が UI ごとコードで組み立てられる（Input System が必要）。
-`MinimalLifetimeScope` が arinn と View を登録し、エントリポイントの `MinimalPresenter` が View のイベントを購読してウィンドウを開く。
+`MinimalLifetimeScope` は arinn と `MinimalPresenter` だけを登録し、`MinimalPresenter` が `FindFirstObjectByType` で View を取得して、View のイベントを購読してウィンドウを開く。
 
 - **基底画面**（`MenuScreen`）：上下の端で回り込むメニュー。
 - **設定**（`SettingsWindow`）：選択に合わせてスクロールする一覧。右端から右上の閉じるボタンへ抜ける。

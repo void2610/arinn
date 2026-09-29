@@ -10,7 +10,7 @@
 #### フォーカスとウィンドウ
 
 - `UIFocusManager`：ウィンドウのスタック、開く前のフォーカスの預かりと返却、フォーカスが消えたときの復帰。インスタンスとして生成でき、`Instance` はロケータとして残す
-- `WindowBase`：CanvasGroup で表示と入力の受付を切り替える基底クラス。`Open` / `Close` / `Toggle` で開閉し、閉じ始めた時点で入力を切る。既定要素と閉じるボタンはコードでも指定できる。VContainer に登録すると、コンテナの `UIFocusManager` を注入される
+- `WindowBase`：CanvasGroup で表示と入力の受付を切り替える基底クラス。`Open` / `Close` / `Toggle` で開閉し、閉じ始めた時点で入力を切る。既定要素と閉じるボタンはコードでも指定できる。`UIFocusManager.Instance` を使い、VContainer で注入されればそちらを優先する
 - `IFocusSource`：ウィンドウと基底画面に共通の、既定要素を返す窓口。`SwitchBase` / `SetBaseFocusSource` で基底画面を設定する
 - 常時表示 UI へのフォーカスの貸し借り（`EnterPersistentUIFocus` / `ExitPersistentUIFocus` / `TogglePersistentUIFocus`）
 - Cancel の部品（`TryCloseTopWindow` / `TryPopScope`）と、入力でウィンドウを開閉する `RegisterToggleAction`
@@ -42,6 +42,6 @@
 #### ドキュメントとサンプル
 
 - チュートリアル（`Documentation~/tutorial.md`）と、既存プロジェクトからの移行ガイド（`Documentation~/migration.md`）
-- サンプル `Minimal`：基底画面、ウィンドウ 2 枚（スクロール一覧と仮想カーソルのグリッド）、確認ダイアログをコードだけで組み立てる。LifetimeScope で arinn と View を登録し、Presenter で画面同士を繋ぐ
+- サンプル `Minimal`：基底画面、ウィンドウ 2 枚（スクロール一覧と仮想カーソルのグリッド）、確認ダイアログをコードだけで組み立てる。LifetimeScope には arinn と Presenter だけを登録し、Presenter が `FindFirstObjectByType` で View を取得して画面同士を繋ぐ
 - EditMode テストと、Input System 連携の PlayMode テスト
 - コンパイルの確認（`.ci/compile/build.sh` と GitHub Actions）：Unity を起動せず、非公式のリファレンスアセンブリに対して dotnet でコンパイルする。サンプルとテストも対象にする
