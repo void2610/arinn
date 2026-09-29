@@ -13,7 +13,6 @@ Unity uGUI の UI フォーカスとナビゲーションを管理するライ�
 | 文書 | 内容 |
 |---|---|
 | [チュートリアル](Documentation~/tutorial.md) | 組み込みから、ウィンドウ、ナビゲーション、仮想カーソル、E2E テストまでを順に説明する |
-| [設計メモ](Documentation~/design.html) | 抽出の計画、不変条件、決定記録、計画と実装の差分 |
 | [CHANGELOG](CHANGELOG.md) | 版ごとの変更 |
 
 この README は、機能と API の一覧である。
