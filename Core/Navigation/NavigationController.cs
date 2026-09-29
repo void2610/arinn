@@ -209,8 +209,8 @@ namespace Void2610.Arinn
                 return;
             }
 
-            var direction = _repeater.Advance(_input.ReadMove(), Clock.UnscaledTime, _input.RepeatDelay, _input.RepeatRate);
-            if (direction == null) return;
+            var step = _repeater.Advance(_input.ReadMove(), Clock.UnscaledTime, _input.RepeatDelay, _input.RepeatRate, scope.InputMode, scope.Repeats);
+            if (step == null) return;
 
             var selected = eventSystem.currentSelectedGameObject;
             var current = selected ? selected.GetComponent<Selectable>() : null;
@@ -222,10 +222,50 @@ namespace Void2610.Arinn
                 return;
             }
 
-            var next = scope.Resolve(current, direction.Value);
-            // 解決器が範囲外や操作できない要素を返しても、封じ込めは破らない
-            if (!next || next == current || !scope.Contains(next) || !NavigationScope.IsNavigable(next)) return;
+            // 斜めは水平、垂直の順に 1 歩ずつ動かす
+            var moved = MoveOnce(eventSystem, scope, current, step.Value.Primary);
+            if (step.Value.Secondary is { } secondary) MoveOnce(eventSystem, scope, moved, secondary);
+        }
+
+        /// <summary>
+        /// current から direction へ 1 歩動かし、選択している要素を返す（動かなければ current）。
+        /// </summary>
+        private Selectable MoveOnce(EventSystem eventSystem, NavigationScope scope, Selectable current, NavigationDirection direction)
+        {
+            if (scope.PassesMoveToElement(current, direction))
+            {
+                var axisData = new AxisEventData(eventSystem) { moveDir = ToMoveDirection(direction), moveVector = ToVector(direction) };
+                ExecuteEvents.Execute(current.gameObject, axisData, ExecuteEvents.moveHandler);
+                return current;
+            }
+
+            var next = scope.Resolve(current, direction);
+            // 解決器が範囲外や移動先にできない要素を返しても、封じ込めは破らない
+            if (!next || next == current || !scope.Contains(next) || !scope.CanNavigateTo(next)) return current;
             SelectBy(eventSystem, next.gameObject, SelectionChangeSource.Input);
+            return next;
+        }
+
+        private static MoveDirection ToMoveDirection(NavigationDirection direction)
+        {
+            return direction switch
+            {
+                NavigationDirection.Up => MoveDirection.Up,
+                NavigationDirection.Down => MoveDirection.Down,
+                NavigationDirection.Left => MoveDirection.Left,
+                _ => MoveDirection.Right,
+            };
+        }
+
+        private static Vector2 ToVector(NavigationDirection direction)
+        {
+            return direction switch
+            {
+                NavigationDirection.Up => Vector2.up,
+                NavigationDirection.Down => Vector2.down,
+                NavigationDirection.Left => Vector2.left,
+                _ => Vector2.right,
+            };
         }
 
         private void UpdateHover(EventSystem eventSystem, NavigationScope scope)
@@ -282,7 +322,7 @@ namespace Void2610.Arinn
             _selectionChanged.OnNext(new NavigationSelectionChange(selected, source));
             // ポインタを乗せただけでコンテンツが跳ねないよう、ホバーでは追従しない
             if (source != SelectionChangeSource.Hover && scope?.ScrollRect && selected.transform is RectTransform rect)
-                ScrollIntoView.EnsureVisible(scope.ScrollRect, rect);
+                ScrollIntoView.EnsureVisible(scope.ScrollRect, rect, scope.CentersScroll);
         }
 
         private void SelectBy(EventSystem eventSystem, GameObject target, SelectionChangeSource source)

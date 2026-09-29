@@ -35,9 +35,32 @@ namespace Void2610.Arinn
         /// </summary>
         public ScrollRect ScrollRect { get; private set; }
 
+        /// <summary>
+        /// 選択した要素をビューポートの中央へ寄せるか。false ならはみ出した側の端へ揃える。
+        /// </summary>
+        public bool CentersScroll { get; private set; }
+
+        /// <summary>
+        /// 移動入力の丸め方。既定は <see cref="NavigationInputMode.FourWay"/>。
+        /// </summary>
+        public NavigationInputMode InputMode { get; private set; } = NavigationInputMode.FourWay;
+
+        /// <summary>
+        /// 押しっぱなしでリピートするか。既定は true。
+        /// </summary>
+        public bool Repeats { get; private set; } = true;
+
+        /// <summary>
+        /// 操作できない（interactable が false の）要素も移動先にするか。既定は false。
+        /// </summary>
+        public bool IncludesNonInteractable { get; private set; }
+        private static readonly List<CanvasGroup> CanvasGroupBuffer = new();
+
         private readonly EdgePolicySet _edges = new();
         private readonly List<Func<Selectable, bool>> _excludes = new();
         private readonly Dictionary<(Selectable From, NavigationDirection Direction), Selectable> _links = new();
+        private readonly List<(Selectable From, NavigationDirection Direction)> _deadLinks = new();
+        private readonly List<(Func<Selectable, bool> Predicate, NavigationAxis Axes)> _elementMoves = new();
 
         public NavigationScope(Transform root, bool resolvesMove = true)
         {
@@ -66,6 +89,15 @@ namespace Void2610.Arinn
         public static bool IsNavigable(Selectable selectable) => selectable && selectable.isActiveAndEnabled && selectable.IsInteractable() && selectable.transform is RectTransform;
 
         /// <summary>
+        /// このスコープで移動先にできる要素か。<see cref="IsNavigable"/> に加え、<see cref="IncludeNonInteractable"/> を宣言していれば操作できない要素も含める。
+        /// </summary>
+        public bool CanNavigateTo(Selectable selectable)
+        {
+            if (IsNavigable(selectable)) return true;
+            return IncludesNonInteractable && selectable && selectable.isActiveAndEnabled && selectable.transform is RectTransform && GroupsAllowInteraction(selectable.transform);
+        }
+
+        /// <summary>
         /// current から direction へ移動した先を返す。移動先が無ければ（端で止まる場合や解決器が内部で処理した場合を含む）null。
         /// </summary>
         public Selectable Resolve(Selectable current, NavigationDirection direction)
@@ -87,9 +119,50 @@ namespace Void2610.Arinn
         /// <summary>
         /// 選択に追従してスクロールする ScrollRect を登録する。
         /// </summary>
-        public NavigationScope WithScrollIntoView(ScrollRect scrollRect)
+        /// <param name="scrollRect">追従させる ScrollRect</param>
+        /// <param name="center">true なら選択した要素をビューポートの中央へ寄せる。false ならはみ出したときだけ端へ揃える</param>
+        public NavigationScope WithScrollIntoView(ScrollRect scrollRect, bool center = false)
         {
             ScrollRect = scrollRect;
+            CentersScroll = center;
+            return this;
+        }
+
+        /// <summary>
+        /// 移動入力の丸め方を決める。斜めに動かしたい仮想カーソルでは <see cref="NavigationInputMode.EightWay"/> にする。
+        /// </summary>
+        public NavigationScope WithInputMode(NavigationInputMode mode)
+        {
+            InputMode = mode;
+            return this;
+        }
+
+        /// <summary>
+        /// 押しっぱなしでもリピートせず、押し直すか向きを変えたときだけ 1 歩動かす。
+        /// </summary>
+        public NavigationScope WithoutRepeat()
+        {
+            Repeats = false;
+            return this;
+        }
+
+        /// <summary>
+        /// 操作できない（interactable が false の）要素も移動先にする。買えない商品や空のスロットへ移ってツールチップを見せたい画面で使う。
+        /// 閉じたウィンドウのように、親の CanvasGroup で操作を止められている要素は含めない。
+        /// </summary>
+        public NavigationScope IncludeNonInteractable()
+        {
+            IncludesNonInteractable = true;
+            return this;
+        }
+
+        /// <summary>
+        /// predicate に当てはまる要素を選んでいる間、axes の方向入力を移動ではなくその要素の Move イベント（OnMove）として渡す。
+        /// スライダーの左右で値を変えるときに使う。要素の Navigation を None にしておかないと、Unity の移動で要素から抜けることがある。
+        /// </summary>
+        public NavigationScope PassMoveToElement(Func<Selectable, bool> predicate, NavigationAxis axes)
+        {
+            _elementMoves.Add((predicate ?? throw new ArgumentNullException(nameof(predicate)), axes));
             return this;
         }
 
@@ -118,7 +191,17 @@ namespace Void2610.Arinn
         public NavigationScope Link(Selectable from, NavigationDirection direction, Selectable to)
         {
             if (!from) throw new ArgumentNullException(nameof(from));
+            PruneDeadLinks();
             _links[(from, direction)] = to;
+            return this;
+        }
+
+        /// <summary>
+        /// <see cref="Link"/> で明示した移動先をすべて外す。要素を作り直す画面で、張り直す前に呼ぶ。
+        /// </summary>
+        public NavigationScope ClearLinks()
+        {
+            _links.Clear();
             return this;
         }
 
@@ -144,7 +227,7 @@ namespace Void2610.Arinn
             {
                 if (selectable == current) continue;
                 if (selectable is Scrollbar) continue;
-                if (!IsNavigable(selectable)) continue;
+                if (!CanNavigateTo(selectable)) continue;
                 if (IsExcluded(selectable)) continue;
                 result.Add(selectable);
             }
@@ -157,7 +240,20 @@ namespace Void2610.Arinn
         public Selectable ResolveExit(EdgePolicy policy, Selectable current)
         {
             var target = policy.ExitTarget;
-            return target && target != current && Contains(target) && IsNavigable(target) ? target : null;
+            return target && target != current && Contains(target) && CanNavigateTo(target) ? target : null;
+        }
+
+        /// <summary>
+        /// current を選んでいるときの direction の入力を、移動ではなく要素の Move イベントとして渡すか。
+        /// </summary>
+        internal bool PassesMoveToElement(Selectable current, NavigationDirection direction)
+        {
+            var axis = direction is NavigationDirection.Left or NavigationDirection.Right ? NavigationAxis.Horizontal : NavigationAxis.Vertical;
+            foreach (var (predicate, axes) in _elementMoves)
+            {
+                if ((axes & axis) != 0 && predicate(current)) return true;
+            }
+            return false;
         }
 
         private bool Contains(Transform target)
@@ -169,7 +265,33 @@ namespace Void2610.Arinn
         private Selectable ResolveLink(Selectable current, NavigationDirection direction)
         {
             if (!current || !_links.TryGetValue((current, direction), out var target)) return null;
-            return target && target != current && Contains(target) && IsNavigable(target) ? target : null;
+            return target && target != current && Contains(target) && CanNavigateTo(target) ? target : null;
+        }
+
+        // 親の CanvasGroup が操作を止めているか。Selectable.IsInteractable の CanvasGroup の判定だけを取り出したもの
+        private static bool GroupsAllowInteraction(Transform transform)
+        {
+            for (var t = transform; t; t = t.parent)
+            {
+                t.GetComponents(CanvasGroupBuffer);
+                foreach (var group in CanvasGroupBuffer)
+                {
+                    if (!group.enabled) continue;
+                    if (!group.interactable) return false;
+                    if (group.ignoreParentGroups) return true;
+                }
+            }
+            return true;
+        }
+
+        private void PruneDeadLinks()
+        {
+            foreach (var key in _links.Keys)
+            {
+                if (!key.From) _deadLinks.Add(key);
+            }
+            foreach (var key in _deadLinks) _links.Remove(key);
+            _deadLinks.Clear();
         }
 
         private bool IsExcluded(Selectable selectable)

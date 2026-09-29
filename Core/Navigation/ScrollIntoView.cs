@@ -14,8 +14,9 @@ namespace Void2610.Arinn
 
         /// <summary>
         /// target が見える位置までコンテンツを動かす。content の直下でなくても、content の子孫であれば追従する。
+        /// center が true なら、はみ出していなくても target をビューポートの中央へ寄せる。
         /// </summary>
-        public static void EnsureVisible(ScrollRect scrollRect, RectTransform target)
+        public static void EnsureVisible(ScrollRect scrollRect, RectTransform target, bool center = false)
         {
             if (!scrollRect || !scrollRect.content || !target || !target.IsChildOf(scrollRect.content)) return;
 
@@ -28,10 +29,10 @@ namespace Void2610.Arinn
 
             var delta = new Vector2(
                 scrollRect.horizontal
-                    ? CalculateAxisDelta(targetMin.x, targetMax.x, viewportRect.xMin, viewportRect.xMax, contentMin.x, contentMax.x)
+                    ? CalculateAxisDelta(targetMin.x, targetMax.x, viewportRect.xMin, viewportRect.xMax, contentMin.x, contentMax.x, center)
                     : 0f,
                 scrollRect.vertical
-                    ? CalculateAxisDelta(targetMin.y, targetMax.y, viewportRect.yMin, viewportRect.yMax, contentMin.y, contentMax.y)
+                    ? CalculateAxisDelta(targetMin.y, targetMax.y, viewportRect.yMin, viewportRect.yMax, contentMin.y, contentMax.y, center)
                     : 0f);
             if (delta == Vector2.zero) return;
 
@@ -50,13 +51,15 @@ namespace Void2610.Arinn
             float viewportMin,
             float viewportMax,
             float contentMin,
-            float contentMax)
+            float contentMax,
+            bool center = false)
         {
             // ビューポートに収まるコンテンツはスクロールしない
             if (contentMax - contentMin <= viewportMax - viewportMin) return 0f;
 
             float delta;
-            if (targetMax > viewportMax + SNAP_EPSILON) delta = viewportMax - targetMax;
+            if (center) delta = (viewportMin + viewportMax - targetMin - targetMax) / 2f;
+            else if (targetMax > viewportMax + SNAP_EPSILON) delta = viewportMax - targetMax;
             else if (targetMin < viewportMin - SNAP_EPSILON) delta = viewportMin - targetMin;
             else return 0f;
 

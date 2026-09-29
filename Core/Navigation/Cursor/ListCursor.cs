@@ -33,7 +33,9 @@ namespace Void2610.Arinn
         /// <param name="count">項目の数</param>
         /// <param name="isHorizontal">左右に並ぶなら true、上下に並ぶなら false</param>
         /// <param name="isNavigable">止まれる項目か。null ならすべての項目に止まれる。移動のたびに評価される</param>
-        public ListCursor(int count, bool isHorizontal = true, Func<int, bool> isNavigable = null)
+        /// <param name="skipsBlocked">止まれない項目を飛び越えてその先へ進むなら true、手前で止まるなら false</param>
+        public ListCursor(int count, bool isHorizontal = true, Func<int, bool> isNavigable = null, bool skipsBlocked = true)
+            : base(skipsBlocked)
         {
             Count = Mathf.Max(0, count);
             Index = Count > 0 ? 0 : -1;

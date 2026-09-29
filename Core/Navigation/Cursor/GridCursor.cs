@@ -30,7 +30,9 @@ namespace Void2610.Arinn
         /// <param name="columns">列の数</param>
         /// <param name="rows">行の数</param>
         /// <param name="isNavigable">止まれるマスか。null ならすべてのマスに止まれる。移動のたびに評価される</param>
-        public GridCursor(int columns, int rows, Func<Vector2Int, bool> isNavigable = null)
+        /// <param name="skipsBlocked">止まれないマスを飛び越えてその先へ進むなら true、手前で止まるなら false</param>
+        public GridCursor(int columns, int rows, Func<Vector2Int, bool> isNavigable = null, bool skipsBlocked = true)
+            : base(skipsBlocked)
         {
             Columns = Mathf.Max(0, columns);
             Rows = Mathf.Max(0, rows);
