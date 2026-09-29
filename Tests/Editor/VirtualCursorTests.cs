@@ -56,6 +56,64 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void GridCursor_SetPositionは範囲の外を範囲内へ収めて通知する()
+        {
+            using var cursor = new GridCursor(3, 2);
+            var moved = new Vector2Int(-1, -1);
+            using var subscription = cursor.OnMoved.Subscribe(position => moved = position);
+
+            cursor.SetPosition(new Vector2Int(10, -5));
+
+            Assert.That(cursor.Position, Is.EqualTo(new Vector2Int(2, 0)));
+            Assert.That(moved, Is.EqualTo(new Vector2Int(2, 0)));
+        }
+
+        [Test]
+        public void GridCursor_同じ位置へのSetPositionは通知しない()
+        {
+            using var cursor = new GridCursor(3, 2);
+            var count = 0;
+            using var subscription = cursor.OnMoved.Subscribe(_ => count++);
+
+            cursor.SetPosition(Vector2Int.zero);
+
+            Assert.That(count, Is.Zero);
+        }
+
+        [Test]
+        public void ListCursor_SetCountで範囲の外になった位置は収める()
+        {
+            using var cursor = new ListCursor(5);
+            cursor.SetIndex(4);
+
+            cursor.SetCount(2);
+
+            Assert.That(cursor.Index, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ListCursor_SetCountで0にすると位置はマイナス1になる()
+        {
+            using var cursor = new ListCursor(3);
+
+            cursor.SetCount(0);
+
+            Assert.That(cursor.Index, Is.EqualTo(-1));
+        }
+
+        [Test]
+        public void ListCursor_SetIndexは範囲の外を範囲内へ収める()
+        {
+            using var cursor = new ListCursor(3);
+
+            cursor.SetIndex(-4);
+            Assert.That(cursor.Index, Is.Zero);
+
+            cursor.SetIndex(9);
+            Assert.That(cursor.Index, Is.EqualTo(2));
+        }
+
+        [Test]
         public void ListCursor_並びと直交する方向は端として扱う()
         {
             using var cursor = new ListCursor(3);
