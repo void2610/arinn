@@ -358,6 +358,114 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void Blockした方向へは隣があっても動かない()
+        {
+            var window = CreateWindow("Window");
+            var from = CreateButton("From", window.transform, new Vector2(0f, 0f));
+            CreateButton("Near", window.transform, new Vector2(200f, 0f));
+            OpenWithScope(window, from, new NavigationScope(window.transform).Block(from, NavigationDirection.Right));
+
+            Press(Vector2.right);
+
+            Assert.That(Selected, Is.EqualTo(from.gameObject));
+        }
+
+        [Test]
+        public void IncludeScrollbarsならScrollbarへも移る()
+        {
+            var window = CreateWindow("Window");
+            var item = CreateButton("Item", window.transform, Vector2.zero);
+            var bar = CreateRootFor("Scrollbar", window.transform);
+            bar.anchoredPosition = new Vector2(200f, 0f);
+            bar.sizeDelta = new Vector2(20f, 200f);
+            var scrollbar = bar.gameObject.AddComponent<Scrollbar>();
+            OpenWithScope(window, item, new NavigationScope(window.transform).IncludeScrollbars());
+
+            Press(Vector2.right);
+
+            Assert.That(Selected, Is.EqualTo(scrollbar.gameObject));
+        }
+
+        [Test]
+        public void EightWayでも選択が変わったら2歩目は動かさない()
+        {
+            var window = CreateWindow("Window");
+            var first = CreateButton("First", window.transform, new Vector2(0f, 0f));
+            var right = CreateButton("Right", window.transform, new Vector2(200f, 0f));
+            CreateButton("Below", window.transform, new Vector2(200f, -200f));
+            OpenWithScope(window, first, new NavigationScope(window.transform).WithInputMode(NavigationInputMode.EightWay));
+
+            Press(new Vector2(0.7f, -0.7f));
+
+            Assert.That(Selected, Is.EqualTo(right.gameObject));
+        }
+
+        [Test]
+        public void 操作できない要素にはPassMoveToElementでもOnMoveを送らない()
+        {
+            var window = CreateWindow("Window");
+            var sliderRect = CreateRootFor("Slider", window.transform);
+            sliderRect.sizeDelta = new Vector2(200f, 40f);
+            var slider = sliderRect.gameObject.AddComponent<Slider>();
+            slider.navigation = new Navigation { mode = Navigation.Mode.None };
+            slider.interactable = false;
+            var scope = new NavigationScope(window.transform)
+                .IncludeNonInteractable()
+                .PassMoveToElement(selectable => selectable is Slider, NavigationAxis.Horizontal);
+            OpenWithScope(window, slider, scope);
+
+            Press(Vector2.right);
+
+            Assert.That(Selected, Is.EqualTo(slider.gameObject));
+            Assert.That(slider.value, Is.Zero);
+        }
+
+        [Test]
+        public void WithRepeatでリピートを戻せる()
+        {
+            var scope = new NavigationScope(CreateRoot("Root")).WithoutRepeat();
+
+            scope.WithRepeat();
+
+            Assert.That(scope.Repeats, Is.True);
+        }
+
+        [Test]
+        public void ReturnsToAnchorを指定するとアンカー以外が選択されていてもカーソルを動かしてアンカーへ戻す()
+        {
+            var window = CreateWindow("Window");
+            var area = CreateArea(window.transform);
+            var hud = CreateButton("Hud", window.transform, new Vector2(0f, -400f));
+            using var cursor = new ListCursor(3);
+            using var resolver = new CursorResolver(cursor, area, returnsToAnchor: true);
+            OpenWithScope(window, resolver.Anchor, new NavigationScope(window.transform).UseResolver(resolver));
+            EventSystem.SetSelectedGameObject(hud.gameObject);
+
+            Press(Vector2.right);
+
+            Assert.That(Selected, Is.EqualTo(resolver.Anchor.gameObject));
+            Assert.That(cursor.Index, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void 常時表示UIのスコープが入れ子ならいちばん内側を使う()
+        {
+            var baseRoot = CreateRoot("Base");
+            var baseButton = CreateButton("BaseButton", baseRoot, Vector2.zero);
+            var baseScreen = new TestFocusSource { Default = baseButton.gameObject };
+            _navigation.Register(baseScreen, new NavigationScope(baseRoot));
+            Manager.SwitchBase(baseScreen);
+
+            var hudRoot = CreateRootFor("Hud", baseRoot);
+            var hudButton = CreateButton("HudButton", hudRoot, new Vector2(0f, 300f));
+            _navigation.Register(new TestFocusSource { Default = hudButton.gameObject }, new NavigationScope(hudRoot));
+            Manager.EnterPersistentUIFocus(hudButton.gameObject, hudRoot.gameObject);
+            NextNavigationFrame();
+
+            Assert.That(_navigation.ActiveScope?.Root, Is.EqualTo((Transform)hudRoot));
+        }
+
+        [Test]
         public void 操作できない要素は飛ばす()
         {
             var window = CreateWindow("Window");
