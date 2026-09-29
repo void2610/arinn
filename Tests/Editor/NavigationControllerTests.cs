@@ -96,6 +96,81 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void ウィンドウが宣言したスコープに従う()
+        {
+            var window = CreateWindow("Window");
+            var item = CreateButton("Item", window.transform, Vector2.zero);
+            var close = CreateButton("Close", window.transform, new Vector2(600f, 400f));
+            window.ScopeFactory = w => new NavigationScope(w.transform).OnEdge(NavigationDirection.Down, EdgePolicy.Exit(close));
+            window.Default = item.gameObject;
+            window.Open();
+            NextNavigationFrame();
+
+            Press(Vector2.down);
+
+            Assert.That(Selected, Is.EqualTo(close.gameObject));
+        }
+
+        [Test]
+        public void ウィンドウのスコープは最初に最前面になったときに一度だけ作る()
+        {
+            var window = CreateWindow("Window");
+            window.Default = CreateButton("Item", window.transform, Vector2.zero).gameObject;
+            Assert.That(window.ScopeCreatedCount, Is.Zero, "開くまでは作らない");
+
+            window.Open();
+            NextNavigationFrame();
+            NextNavigationFrame();
+            window.Close();
+            window.Open();
+            NextNavigationFrame();
+
+            Assert.That(window.ScopeCreatedCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Registerしたスコープはウィンドウの宣言より優先する()
+        {
+            var window = CreateWindow("Window");
+            var item = CreateButton("Item", window.transform, Vector2.zero);
+            var registered = new NavigationScope(window.transform);
+            _navigation.Register(window, registered);
+            window.Default = item.gameObject;
+            window.Open();
+            NextNavigationFrame();
+
+            Assert.That(_navigation.ActiveScope, Is.EqualTo(registered));
+            Assert.That(window.ScopeCreatedCount, Is.Zero);
+        }
+
+        [Test]
+        public void 基底画面がスコープを宣言すれば登録しなくても効く()
+        {
+            var root = CreateRoot("Base");
+            var left = CreateButton("Left", root, new Vector2(0f, 0f));
+            var right = CreateButton("Right", root, new Vector2(200f, 0f));
+            var baseScreen = new TestScopedFocusSource { Default = left.gameObject, ScopeFactory = () => new NavigationScope(root) };
+            Manager.SwitchBase(baseScreen);
+            NextNavigationFrame();
+
+            Press(Vector2.right);
+
+            Assert.That(Selected, Is.EqualTo(right.gameObject));
+        }
+
+        [Test]
+        public void 宣言したスコープがnullならUnityの移動に任せる()
+        {
+            var root = CreateRoot("Base");
+            var left = CreateButton("Left", root, Vector2.zero);
+            Manager.SwitchBase(new TestScopedFocusSource { Default = left.gameObject });
+            NextNavigationFrame();
+
+            Assert.That(_navigation.ActiveScope, Is.Null);
+            Assert.That(_input.IsSuppressed, Is.False);
+        }
+
+        [Test]
         public void 操作できない要素は飛ばす()
         {
             var window = CreateWindow("Window");

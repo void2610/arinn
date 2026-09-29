@@ -1,3 +1,4 @@
+using System;
 using NUnit.Framework;
 using R3;
 using UnityEngine;
@@ -11,6 +12,56 @@ namespace Void2610.Arinn.Tests
 
         [TearDown]
         public void TearDownDisposables() => _disposables.Clear();
+
+        [Test]
+        public void Openで開いてCloseで閉じる()
+        {
+            var window = CreateWindow("A");
+
+            window.Open();
+            Assert.That(window.IsVisible, Is.True);
+            Assert.That(Manager.TopWindow, Is.EqualTo(window));
+
+            window.Close();
+            Assert.That(window.IsVisible, Is.False);
+            Assert.That(Manager.HasOpenWindows, Is.False);
+        }
+
+        [Test]
+        public void Openは開く前のフォーカスを預かりCloseで返す()
+        {
+            var before = Create("Before");
+            EventSystem.SetSelectedGameObject(before);
+            var window = CreateWindow("A");
+
+            window.Open();
+            NextFrame();
+            Assert.That(Selected, Is.EqualTo(window.Default));
+
+            window.Close();
+            Assert.That(Selected, Is.EqualTo(before));
+        }
+
+        [Test]
+        public void Toggleは閉じていれば開き開いていれば閉じる()
+        {
+            var window = CreateWindow("A");
+
+            window.Toggle();
+            Assert.That(window.IsVisible, Is.True);
+
+            window.Toggle();
+            Assert.That(window.IsVisible, Is.False);
+        }
+
+        [Test]
+        public void マネージャーが無いときのOpenは例外で知らせる()
+        {
+            var window = CreateWindow("A");
+            Manager.Dispose();
+
+            Assert.Throws<InvalidOperationException>(() => window.Open());
+        }
 
         [Test]
         public void ToggleWindow_閉じていれば開き開いていれば閉じる()

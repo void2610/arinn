@@ -158,6 +158,15 @@ namespace Void2610.Arinn.Tests
 
         protected override IWindowTransition Transition => TransitionOverride;
 
+        public System.Func<TestWindow, NavigationScope> ScopeFactory;
+        public int ScopeCreatedCount;
+
+        public override NavigationScope CreateNavigationScope()
+        {
+            ScopeCreatedCount++;
+            return ScopeFactory != null ? ScopeFactory(this) : base.CreateNavigationScope();
+        }
+
         public void BindCloseButton(Button button) => SetCloseButton(button);
 
         public CanvasGroup Group => GetComponent<CanvasGroup>();
@@ -168,6 +177,19 @@ namespace Void2610.Arinn.Tests
         public GameObject Default;
 
         public GameObject DefaultFocusElement => Default;
+    }
+
+    /// <summary>
+    /// スコープを自分で宣言する基底画面。
+    /// </summary>
+    public sealed class TestScopedFocusSource : IFocusSource, INavigationScopeSource
+    {
+        public GameObject Default;
+        public System.Func<NavigationScope> ScopeFactory;
+
+        public GameObject DefaultFocusElement => Default;
+
+        public NavigationScope CreateNavigationScope() => ScopeFactory?.Invoke();
     }
 
     public sealed class CountingGate : IInputScopeGate
