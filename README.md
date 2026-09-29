@@ -147,8 +147,12 @@ public override NavigationScope CreateNavigationScope() => base.CreateNavigation
 | `EdgePolicy.Exit(target)` | 端から指定した要素へ抜ける。抜け先がスコープの外、操作できない、非アクティブ、自分自身なら止まる |
 | `EdgePolicy.WrapRow` | 同じ行（上下の移動なら列）の反対側の端へ回り込む |
 | `Exclude(predicate)` | 候補から外す。ホバーでは外さない |
-| `Link(from, direction, to)`、`Unlink` | from で direction を押したら to へ移る、と明示する。位置からの導出と端の宣言より優先し、to が選べないときは導出に戻る |
-| `WithScrollIntoView(scrollRect)` | 選択した要素が見える位置までスクロールする。ホバーでの選択には追従しない |
+| `Link(from, direction, to)`、`Unlink`、`ClearLinks` | from で direction を押したら to へ移る、と明示する。位置からの導出と端の宣言より優先し、to が選べないときは導出に戻る |
+| `IncludeNonInteractable()` | 操作できない（interactable が false の）要素も移動先にする。親の CanvasGroup で止められた要素は含めない |
+| `WithInputMode(mode)` | 移動入力の丸め方。`FourWay`（既定）、`FourWayPreferVertical`、`HorizontalOnly`、`VerticalOnly`、`EightWay`（斜めを水平、垂直の 2 歩にする） |
+| `WithoutRepeat()` | 押しっぱなしでもリピートせず、押し直したときだけ 1 歩動かす |
+| `PassMoveToElement(predicate, axes)` | 当てはまる要素を選んでいる間、その軸の入力を移動ではなく要素の OnMove へ渡す（スライダーの左右など） |
+| `WithScrollIntoView(scrollRect, center)` | 選択した要素が見える位置までスクロールする。center なら中央へ寄せる。ホバーでの選択には追従しない |
 | `UseResolver(resolver)` | 移動先の決め方を差し替える |
 | `new NavigationScope(root, resolvesMove: false)` | 移動を Unity に任せる。スクロールとホバーの範囲は効く |
 
@@ -180,8 +184,8 @@ public override NavigationScope CreateNavigationScope() => base.CreateNavigation
 
 | 型 | 説明 |
 |---|---|
-| `GridCursor` | 格子。位置は (列, 行) で、左上が (0, 0) |
-| `ListCursor` | 一列。並びと直交する方向の入力は端として扱う |
+| `GridCursor` | 格子。位置は (列, 行) で、左上が (0, 0)。`skipsBlocked: false` なら止まれないマスを飛び越えず手前で止まる |
+| `ListCursor` | 一列。並びと直交する方向の入力は端として扱う。`skipsBlocked` は `GridCursor` と同じ |
 | `CursorResolver` | アンカー以外が選択されているときは `fallback`（既定は `SpatialResolver`）に任せる。重ねれば 1 画面に複数のカーソルを置ける |
 | `IVirtualCursor`、`VirtualCursor` | 独自のカーソルを作るときの窓口と基底クラス |
 

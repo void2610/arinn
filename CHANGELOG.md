@@ -15,11 +15,12 @@
 - Cancel の部品（`TryCloseTopWindow` / `TryPopScope`）と、入力でウィンドウを開閉する `RegisterToggleAction`
 - 拡張点：`IInputScopeGate`（ゲームプレイ入力の停止）、`ISubmitHoldProbe`（決定の押下）、`IWindowTransition`（開閉の演出）
 - 観測用のプロパティ `WindowCount` / `IsFocusOnDefaultElement`
+- フォーカスの予約は、ウィンドウの予約と常時表示 UI の予約を別の枠で持つ。既定要素の取得が例外を投げても、次のフレームからは投げ直さない
 
 #### ナビゲーション
 
 - `NavigationController`：今のスコープ（最前面のウィンドウ、なければ基底画面）の中だけから移動先を決める。EventSystem の move を止めて自前で解決するので、ウィンドウの背面の UI へ飛ばない
-- `NavigationScope`：スコープの根、端の挙動（`EdgePolicy.Stop` / `Exit` / `WrapRow`）、候補の除外、要素ごとの移動先の明示（`Link`）、選択に合わせたスクロール、解決器の差し替えをコードで宣言する
+- `NavigationScope`：スコープの根、端の挙動（`EdgePolicy.Stop` / `Exit` / `WrapRow`）、候補の除外、要素ごとの移動先の明示（`Link`）、操作できない要素を候補に含めるか（`IncludeNonInteractable`）、入力の丸め方（`WithInputMode`）とリピートの有無（`WithoutRepeat`）、要素への方向入力の受け渡し（`PassMoveToElement`）、選択に合わせたスクロール（中央寄せも可）、解決器の差し替えをコードで宣言する
 - `INavigationScopeSource`：画面が自分のスコープを宣言する。`WindowBase` は既定でウィンドウの transform を根にし、`CreateNavigationScope` のオーバーライドで変えられる。スコープは最初に今の画面になったときに一度だけ作るので、登録の手順が要らない
 - `NavigationController.Register`：外から画面にスコープを結び付ける（画面の宣言より優先する）
 - `SpatialResolver` と `DirectionalResolver`：入力の時点の RectTransform の位置から移動先を決める
@@ -28,7 +29,7 @@
 - `SelectionChanged`：選択の変化を、方向入力、ホバー、それ以外に分けて通知する
 - `ScrollIntoView`：選択した要素が見える位置まで ScrollRect を動かす
 - ホバー選択（`EnableHoverSelection`）：ポインタが動いたときだけ選び、スコープの外は選ばない
-- 仮想カーソル：`GridCursor` / `ListCursor` / `CursorResolver`。フォーカスはライブラリ内部のアンカーが受ける
+- 仮想カーソル：`GridCursor` / `ListCursor` / `CursorResolver`。フォーカスはライブラリ内部のアンカーが受ける。止まれない位置を飛び越えるか手前で止まるかを選べる
 - 拡張点：`INavigationInput`（方向入力）、`IPointerPositionSource`（ポインタの位置）、`INavigationResolver`（移動先の決め方）
 
 #### 任意のアセンブリ

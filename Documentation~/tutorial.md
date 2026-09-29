@@ -407,10 +407,58 @@ public override NavigationScope CreateNavigationScope() => base.CreateNavigation
 ```
 
 `Link` は、位置からの導出と端の宣言より優先する。
+要素を作り直す画面では、張り直す前に `ClearLinks` で前の宣言をすべて外す。
 向きごとに 1 つずつ宣言するので、行き来させたいなら両方向を書く。
 移動先が非アクティブや操作できないときは、明示した移動先で止めずに位置からの導出に戻る（売り切れの枠などで行き止まりにしないため）。
 移動先がスコープの外なら、封じ込めを優先して無視する。
 外すときは `Unlink` を呼ぶ。
+
+### 操作できない要素へも移る
+
+買えない商品や空のスロットのように、押せないがフォーカスしてツールチップを見せたい要素がある画面では、`IncludeNonInteractable` を宣言する。
+
+```csharp
+public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope().IncludeNonInteractable();
+```
+
+既定では、操作できない（interactable が false の）要素は候補から外れる。
+宣言すると、そうした要素にも移り、`Link` と `Exit` の移動先にもできる。
+ただし、親の CanvasGroup で操作を止められている要素（閉じたパネルの中など）は含めない。
+決定を押しても、要素が操作できないので何も起きない。
+
+### 入力の丸め方とリピート
+
+移動入力の Vector2 をどう方向へ丸めるかは、`WithInputMode` でスコープごとに決める。
+
+- **`FourWay`**（既定）：絶対値の大きい軸の 1 方向。同じなら水平。
+- **`FourWayPreferVertical`**：絶対値の大きい軸の 1 方向。同じなら垂直。
+- **`HorizontalOnly`**：水平の成分だけを見る。垂直の成分が大きくても、水平の成分が閾値を超えていれば左右として扱う（手札の左右選択など）。
+- **`VerticalOnly`**：垂直の成分だけを見る。
+- **`EightWay`**：水平と垂直を別々に判定する。両方あれば斜めとして、水平、垂直の順に 1 歩ずつ動かす（格子の仮想カーソルを斜めに動かすとき）。
+
+押しっぱなしのリピートを止めたい画面（タイルのカーソルなど、1 回の押下で 1 歩だけ動かしたい画面）では、`WithoutRepeat` を宣言する。
+押し直すか、向きを変えたときだけ動く。
+
+```csharp
+public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope()
+    .UseResolver(_tileResolver)
+    .WithInputMode(NavigationInputMode.FourWayPreferVertical)
+    .WithoutRepeat();
+```
+
+### 方向入力を要素に渡す
+
+スライダーのように、左右の入力を自分で使う要素は、`PassMoveToElement` で入力を要素へ渡す。
+当てはまる要素を選んでいる間、指定した軸の入力は移動にならず、その要素の Move イベント（`OnMove`）として送られる。
+指定しない軸は、ふつうに移動する。
+
+```csharp
+public override NavigationScope CreateNavigationScope() => base.CreateNavigationScope()
+    .PassMoveToElement(selectable => selectable is Slider, NavigationAxis.Horizontal);
+```
+
+Unity の Slider は、その方向に Navigation の移動先があると値を変えずに移動してしまう。
+渡す要素の Navigation は None にしておく。
 
 ### 外からスコープを結び付ける
 
@@ -468,6 +516,7 @@ navigation.SelectionChanged
 はみ出した側の端へ揃え、コンテンツの端がビューポートの内側へ入らないよう制限する。
 ホバーで変わった選択にはスクロールを追従させない（ポインタを乗せただけで一覧が動くのを防ぐため）。
 
+選択した要素を常にビューポートの中央へ寄せたいとき（地図の現在地など）は、`WithScrollIntoView(scrollRect, center: true)` にする。
 Selectable でない対象（仮想カーソルのマスなど）は、`ScrollIntoView.EnsureVisible(scrollRect, rect)` を直接呼ぶ。
 
 ### ホバーで選択する
@@ -542,7 +591,7 @@ Cancel は通常の経路のままなので、`TryPopScope` でウィンドウ�
 
 ### GridCursor と ListCursor
 
-- **`GridCursor`**：格子状のマス。位置は (列, 行) で、左上が (0, 0)、行は下へ増える。止まれないマス（`isNavigable` が false）は飛ばして、その先で止まれるマスへ進む。
+- **`GridCursor`**：格子状のマス。位置は (列, 行) で、左上が (0, 0)、行は下へ増える。止まれないマス（`isNavigable` が false）は飛ばして、その先で止まれるマスへ進む。`skipsBlocked: false` を渡すと、止まれないマスの手前で止まる（未解放のスロットの先へ飛ばしたくないとき）。
 - **`ListCursor`**：一列に並んだ項目。`isHorizontal` が true なら左右に並び、false なら上下に並ぶ。並びと直交する方向の入力は端として扱うので、手札の下に置いたボタンへ `Exit` で抜けられる。
 
 要素の数が変わったら `SetSize` か `SetCount` を呼ぶ。
