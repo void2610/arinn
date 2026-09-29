@@ -3,7 +3,9 @@
     "rootNamespace": "Void2610.Arinn",
     "references": [
         "Void2610.Arinn",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "UnityEngine.UI",
+        "VContainer"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
