@@ -11,7 +11,8 @@ namespace Void2610.Arinn
     /// <summary>
     /// 今のスコープ（最前面のウィンドウ、なければ基底画面）に登録された <see cref="NavigationScope"/> に従って、
     /// 方向入力から選択を動かす。スコープの外の候補は返さないので、ウィンドウの背面の UI へは飛ばない。
-    /// スコープを登録していない画面や、入力（<see cref="SetInput"/>）が無いときは Unity の移動に任せる。
+    /// スコープを登録していないウィンドウは、そのウィンドウの transform を根とする既定のスコープで封じ込める。
+    /// スコープを登録していない基底画面や、入力（<see cref="SetInput"/>）が無いときは Unity の移動に任せる。
     /// VContainer では <see cref="ArinnContainerBuilderExtensions.RegisterArinnNavigation"/> で登録し、毎フレームの <see cref="Tick"/> を回す。
     /// </summary>
     public sealed class NavigationController : ITickable, IDisposable
@@ -35,6 +36,8 @@ namespace Void2610.Arinn
 
         private readonly UIFocusManager _focusManager;
         private readonly Dictionary<IFocusSource, NavigationScope> _scopes = new();
+        private readonly Dictionary<WindowBase, NavigationScope> _implicitScopes = new();
+        private readonly List<WindowBase> _deadWindows = new();
         private readonly List<IFocusSource> _deadOwners = new();
         private readonly DirectionRepeater _repeater = new();
         private readonly Subject<NavigationSelectionChange> _selectionChanged = new();
@@ -69,6 +72,7 @@ namespace Void2610.Arinn
             if (_input is IDisposable disposable) disposable.Dispose();
             _input = null;
             _scopes.Clear();
+            _implicitScopes.Clear();
             _selectionChanged.Dispose();
             if (Instance == this) Instance = null;
         }
@@ -140,7 +144,7 @@ namespace Void2610.Arinn
         }
 
         /// <summary>
-        /// 画面に結び付けたスコープ。無ければ null。
+        /// 画面に結び付けたスコープ。無ければ null（登録のないウィンドウに使う既定のスコープは含まない）。
         /// </summary>
         public NavigationScope GetScope(IFocusSource owner) => owner != null && _scopes.TryGetValue(owner, out var scope) ? scope : null;
 
@@ -151,7 +155,7 @@ namespace Void2610.Arinn
             PruneDeadOwners();
             var eventSystem = EventSystem.current;
             var owner = FindActiveOwner(eventSystem);
-            var scope = GetScope(owner);
+            var scope = GetScope(owner) ?? GetImplicitScope(owner);
             if (scope != ActiveScope) _repeater.Reset();
             ActiveScope = scope;
 
@@ -291,8 +295,28 @@ namespace Void2610.Arinn
             eventSystem.SetSelectedGameObject(target);
         }
 
+        /// <summary>
+        /// 登録のないウィンドウに使う、ウィンドウの transform を根とするスコープ。基底画面は根を決められないので null。
+        /// 封じ込めを外したいウィンドウは、resolvesMove を false にしたスコープを登録する。
+        /// </summary>
+        private NavigationScope GetImplicitScope(IFocusSource owner)
+        {
+            if (owner is not WindowBase window || !window) return null;
+            if (_implicitScopes.TryGetValue(window, out var scope)) return scope;
+            scope = new NavigationScope(window.transform);
+            _implicitScopes[window] = scope;
+            return scope;
+        }
+
         private void PruneDeadOwners()
         {
+            foreach (var window in _implicitScopes.Keys)
+            {
+                if (!window) _deadWindows.Add(window);
+            }
+            foreach (var window in _deadWindows) _implicitScopes.Remove(window);
+            _deadWindows.Clear();
+
             foreach (var owner in _scopes.Keys)
             {
                 // 破棄済みの MonoBehaviour は通常の null 判定をすり抜けるため、UnityEngine.Object として判定する
