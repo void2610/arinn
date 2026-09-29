@@ -605,7 +605,7 @@ EventSystem へ Move イベントを直接送るのではなく入力デバイ�
 
 ```
 Ui/Navigate Right 2       → navigated: Right x2
-Ui/Focused                → DeckCheckView/cards[2]
+Ui/Focused                → InventoryView/slots[2]
 ```
 
 ### arinn の状態を観測する

@@ -13,7 +13,6 @@ Unity uGUI の UI フォーカスとナビゲーションを管理するライ�
 | 文書 | 内容 |
 |---|---|
 | [チュートリアル](Documentation~/tutorial.md) | 組み込みから、ウィンドウ、ナビゲーション、仮想カーソル、E2E テストまでを順に説明する |
-| [移行ガイド](Documentation~/migration.md) | 「庭小人の庭」と void-red の旧実装との対応表と、置き換える順番 |
 | [設計メモ](Documentation~/design.html) | 抽出の計画、不変条件、決定記録、計画と実装の差分 |
 | [CHANGELOG](CHANGELOG.md) | 版ごとの変更 |
 
@@ -245,7 +244,7 @@ Package Manager の arinn のページの Samples から **Minimal** を Import 
 このリポジトリでは、Unity のエディタを起動せずに dotnet でコンパイルだけを確かめる（`.ci/compile/build.sh`）。
 Unity の型は非公式のリファレンスアセンブリ（NuGet の `Digitalroot.References.Unity`）から取り、uGUI と依存ライブラリはソースを取ってきて一緒にビルドする。
 `Samples~` は Unity がコンパイルしないので、サンプルの型の崩れはここで検出する。
-同じスクリプトで、庭小人と共通のコーディング規約（[unity-coding-standards](https://github.com/void2610/unity-coding-standards) のアナライザと `.editorconfig`）の検査も回す（庭小人の `run-format.sh --verify-no-changes` と同じ順）。
+同じスクリプトで、コーディング規約の検査（[unity-coding-standards](https://github.com/void2610/unity-coding-standards) のアナライザと `.editorconfig`）も回す。
 違反を直すときは、`build.sh` の末尾の `dotnet format` から `--verify-no-changes` を外して同じ順に回す。
 GitHub Actions（`.github/workflows/compile.yml`）でも同じスクリプトを回すので、Secrets の登録は要らない。
 SDK は `.ci/compile/global.json` で 8 に固定している（新しい SDK の `dotnet format` は判定が変わるため）。

@@ -3,7 +3,6 @@
 ## [Unreleased]
 
 最初の公開に向けた版。
-「庭小人の庭」の UIFocusManager と WindowBase、void-red の SafeNavigationManager と BaseWindowView を統合して切り出した。
 
 ### Added
 
@@ -41,7 +40,7 @@
 
 #### ドキュメントとサンプル
 
-- チュートリアル（`Documentation~/tutorial.md`）と、既存プロジェクトからの移行ガイド（`Documentation~/migration.md`）
+- チュートリアル（`Documentation~/tutorial.md`）
 - サンプル `Minimal`：基底画面、ウィンドウ 2 枚（スクロール一覧と仮想カーソルのグリッド）、確認ダイアログをコードだけで組み立てる。LifetimeScope には arinn と Presenter だけを登録し、Presenter が `FindFirstObjectByType` で View を取得して画面同士を繋ぐ
 - EditMode テストと、Input System 連携の PlayMode テスト
 - コンパイルの確認（`.ci/compile/build.sh` と GitHub Actions）：Unity を起動せず、非公式のリファレンスアセンブリに対して dotnet でコンパイルする。サンプルとテストも対象にする
