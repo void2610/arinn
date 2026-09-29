@@ -107,6 +107,18 @@ namespace Void2610.Arinn.Tests
             return go.AddComponent<RectTransform>();
         }
 
+        /// <summary>
+        /// 親の下に RectTransform を持つ空のオブジェクトを作る（fixture の外の補助から使う）。
+        /// </summary>
+        internal RectTransform CreateRootFor(string name, Transform parent)
+        {
+            var rect = CreateRoot(name);
+            rect.SetParent(parent, false);
+            return rect;
+        }
+
+        internal Button CreateButtonFor(string name, Transform parent, Vector2 position) => CreateButton(name, parent, position);
+
         protected GameObject Create(string name)
         {
             var go = new GameObject(name);
@@ -138,10 +150,15 @@ namespace Void2610.Arinn.Tests
     {
         public GameObject Default;
         public bool ClosableByCancel = true;
+        public IWindowTransition TransitionOverride;
 
         public override GameObject DefaultFocusElement => Default;
 
         public override bool IsClosableByCancelInput => ClosableByCancel;
+
+        protected override IWindowTransition Transition => TransitionOverride;
+
+        public void BindCloseButton(Button button) => SetCloseButton(button);
 
         public CanvasGroup Group => GetComponent<CanvasGroup>();
     }
@@ -187,6 +204,59 @@ namespace Void2610.Arinn.Tests
             if (!IsSuppressed) return;
             RestoreCount++;
             IsSuppressed = false;
+        }
+    }
+
+    /// <summary>
+    /// 破棄されたかを記録する入力。
+    /// </summary>
+    public sealed class DisposableNavigationInput : INavigationInput, System.IDisposable
+    {
+        public bool IsSuppressed;
+        public bool IsDisposed;
+
+        public float RepeatDelay => 0.5f;
+
+        public float RepeatRate => 0.1f;
+
+        public Vector2 ReadMove() => Vector2.zero;
+
+        public void SuppressUnityMove() => IsSuppressed = true;
+
+        public void RestoreUnityMove() => IsSuppressed = false;
+
+        public void Dispose() => IsDisposed = true;
+    }
+
+    public sealed class FakePointer : IPointerPositionSource
+    {
+        public Vector2? Position = Vector2.zero;
+
+        public bool TryGetPosition(out Vector2 position)
+        {
+            position = Position ?? default;
+            return Position.HasValue;
+        }
+    }
+
+    /// <summary>
+    /// 開閉の回数を数える遷移。
+    /// </summary>
+    public sealed class CountingTransition : IWindowTransition
+    {
+        public int Shown;
+        public int Hidden;
+
+        public UniTask ShowAsync(CanvasGroup canvasGroup, CancellationToken cancellationToken)
+        {
+            Shown++;
+            return UniTask.CompletedTask;
+        }
+
+        public UniTask HideAsync(CanvasGroup canvasGroup, CancellationToken cancellationToken)
+        {
+            Hidden++;
+            return UniTask.CompletedTask;
         }
     }
 
