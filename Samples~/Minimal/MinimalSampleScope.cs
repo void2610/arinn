@@ -10,7 +10,8 @@ namespace Void2610.Arinn.Samples
     /// 空のシーンの GameObject に付けて再生すると、基底画面・ウィンドウ 2 枚・確認ダイアログを組み立てて動かす。
     /// 登録するのは arinn と Presenter だけで、View は <see cref="MinimalPresenter"/> がシーンから取得する。
     /// </summary>
-    public sealed class MinimalLifetimeScope : LifetimeScope
+    // 名前を *LifetimeScope にすると、VContainer の ScriptTemplateProcessor が Import 時に空のテンプレートで上書きする
+    public sealed class MinimalSampleScope : LifetimeScope
     {
         protected override void Configure(IContainerBuilder builder)
         {

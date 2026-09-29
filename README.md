@@ -230,8 +230,8 @@ arinn の状態は、LiminalPalette の次のコマンドで観測できる。
 ## サンプル
 
 Package Manager の arinn のページの Samples から **Minimal** を Import する。
-空のシーンの GameObject に `MinimalLifetimeScope` を付けて再生すると、次の構成が UI ごとコードで組み立てられる（Input System が必要）。
-`MinimalLifetimeScope` は arinn と `MinimalPresenter` だけを登録し、`MinimalPresenter` が `FindFirstObjectByType` で View を取得して、View のイベントを購読してウィンドウを開く。
+空のシーンの GameObject に `MinimalSampleScope` を付けて再生すると、次の構成が UI ごとコードで組み立てられる（Input System が必要）。
+`MinimalSampleScope` は arinn と `MinimalPresenter` だけを登録し、`MinimalPresenter` が `FindFirstObjectByType` で View を取得して、View のイベントを購読してウィンドウを開く。
 
 - **基底画面**（`MenuScreen`）：上下の端で回り込むメニュー。
 - **設定**（`SettingsWindow`）：選択に合わせてスクロールする一覧。右端から右上の閉じるボタンへ抜ける。閉じるボタンと一覧の先頭は、位置では隣にならないので `Link` で行き来させる。
