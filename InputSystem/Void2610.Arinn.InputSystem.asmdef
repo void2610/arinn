@@ -4,8 +4,7 @@
     "references": [
         "Void2610.Arinn",
         "Unity.InputSystem",
-        "UnityEngine.UI",
-        "VContainer"
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

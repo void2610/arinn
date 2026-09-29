@@ -4,8 +4,7 @@
     "references": [
         "Void2610.Arinn",
         "Void2610.LiminalPalette",
-        "UnityEngine.UI",
-        "VContainer"
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
