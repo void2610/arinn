@@ -12,6 +12,12 @@ namespace Void2610.Arinn.Tests
         public void CalculateAxisDelta_下へはみ出した要素は下端へ揃える() => Assert.That(ScrollIntoView.CalculateAxisDelta(-180f, -120f, -100f, 100f, -500f, 100f), Is.EqualTo(80f));
 
         [Test]
+        public void CalculateAxisDelta_上へはみ出した要素は上端へ揃える() => Assert.That(ScrollIntoView.CalculateAxisDelta(120f, 180f, -100f, 100f, -100f, 500f), Is.EqualTo(-80f));
+
+        [Test]
+        public void CalculateAxisDelta_わずかなはみ出しでは動かさない() => Assert.That(ScrollIntoView.CalculateAxisDelta(-100.3f, -50f, -100f, 100f, -500f, 100f), Is.Zero);
+
+        [Test]
         public void CalculateAxisDelta_コンテンツの端をビューポートの内側へ入れない() => Assert.That(ScrollIntoView.CalculateAxisDelta(-250f, -200f, -100f, 100f, -220f, 100f), Is.EqualTo(120f));
 
         [Test]
