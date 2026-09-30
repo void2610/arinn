@@ -1,4 +1,5 @@
 using System.Globalization;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using Void2610.LiminalPalette;
 
@@ -14,6 +15,7 @@ namespace Void2610.Arinn
         private const string FALSE = "false";
         private const string NONE = "(none)";
         private const string NO_MANAGER = "(no manager)";
+        private const string NOT_FOUND = "(not found)";
 
         [LiminalCommand("Arinn/TopWindow", Description = "最前面のウィンドウの GameObject 名。開いていなければ (none)")]
         public static string TopWindow()
@@ -29,6 +31,16 @@ namespace Void2610.Arinn
         {
             var manager = UIFocusManager.Instance;
             return manager == null ? NO_MANAGER : manager.WindowCount.ToString(CultureInfo.InvariantCulture);
+        }
+
+        [LiminalCommand("Arinn/IsWindowVisible", Description = "GameObject 名が name のウィンドウの IsVisible (\"true\" / \"false\")。閉じる演出を自前で持つウィンドウが論理的に閉じ切ったかを待つのに使う。見つからなければ (not found)")]
+        public static string IsWindowVisible(string name)
+        {
+            foreach (var window in Object.FindObjectsByType<WindowBase>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (window.name == name) return window.IsVisible ? TRUE : FALSE;
+            }
+            return NOT_FOUND;
         }
 
         [LiminalCommand("Arinn/IsFocusOnDefault", Description = "フォーカスが最前面のウィンドウ（なければ基底画面）の既定要素にあるか (\"true\" / \"false\")")]

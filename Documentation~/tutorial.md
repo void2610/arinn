@@ -714,6 +714,7 @@ LiminalPalette が入っていれば、`Void2610.Arinn.LiminalPalette` が Edito
 |---|---|
 | `Arinn/TopWindow` | 最前面のウィンドウの GameObject 名。なければ `(none)` |
 | `Arinn/WindowCount` | 開いているウィンドウの数 |
+| `Arinn/IsWindowVisible` | GameObject 名で指定したウィンドウの `IsVisible`。閉じる演出を自前で持つウィンドウが閉じ切ったかを待つのに使う |
 | `Arinn/IsFocusOnDefault` | フォーカスが最前面のウィンドウ（なければ基底画面）の既定要素にあるか |
 | `Arinn/IsInPersistentUIMode` | 常時表示 UI にフォーカスを借りているか |
 | `Arinn/Selected` | 選択中の GameObject 名 |
