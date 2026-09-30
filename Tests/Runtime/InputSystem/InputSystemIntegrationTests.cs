@@ -20,20 +20,30 @@ namespace Void2610.Arinn.Tests
         private InputSystemUIInputModule _module;
         private Gamepad _gamepad;
         private Keyboard _keyboard;
-        private List<InputAction> _disabledActions;
+        private List<InputAction> _disabledBeforeIsolation;
+        private List<InputAction> _disabledInIsolation;
 
-        // 利用側で有効なアクション（InputForUI の UI アクションや、動いている NavigationController が複製した move）は、有効なまま入力を隔離すると内部状態が壊れて NullReferenceException になる（Input System 1.18）
+        // 利用側で有効なアクション（動いている NavigationController が複製した move など）は、有効なまま入力を隔離すると内部状態が壊れて NullReferenceException になる（Input System 1.18）
         public override void Setup()
         {
-            _disabledActions = InputSystem.ListEnabledActions();
-            foreach (var action in _disabledActions) action.Disable();
+            _disabledBeforeIsolation = DisableEnabledActions();
             base.Setup();
+            // InputForUI は隔離の後に自前の UI アクションを作り直して有効にし、押すと NullReferenceException を投げる
+            _disabledInIsolation = DisableEnabledActions();
         }
 
         public override void TearDown()
         {
+            foreach (var action in _disabledInIsolation) action.Enable();
             base.TearDown();
-            foreach (var action in _disabledActions) action.Enable();
+            foreach (var action in _disabledBeforeIsolation) action.Enable();
+        }
+
+        private static List<InputAction> DisableEnabledActions()
+        {
+            var actions = InputSystem.ListEnabledActions();
+            foreach (var action in actions) action.Disable();
+            return actions;
         }
 
         // 基底の SetUp（入力の隔離）の後に走る
