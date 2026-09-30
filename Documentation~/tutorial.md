@@ -517,8 +517,9 @@ LB を押しながらの十字キーで別の操作（モードの切り替え�
 navigation.SetMoveBlocker(() => Gamepad.current?.leftShoulder.isPressed == true);
 ```
 
-条件が成り立つ間は、スコープがなくても EventSystem の move を有効へ戻さない。
-アプリ側で LB の押下中に move を止めている場合に、その停止を arinn が勝手に解かないためだ。
+条件が成り立つ間は、スコープがない画面でも EventSystem の move を止める。
+アプリ側で LB の押下中に move を止める処理は要らない（止めると、条件が外れたときに arinn とアプリの両方が move を戻そうとして取り合う）。
+条件が外れると、スコープがない画面では move を Unity に戻す。
 十字キーを押したまま LB を離すと、その時点で新しい押下として 1 回動く。
 
 ## 12. 選択の変化に反応する

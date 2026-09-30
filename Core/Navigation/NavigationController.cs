@@ -84,7 +84,7 @@ namespace Void2610.Arinn
 
         /// <summary>
         /// 方向入力を移動として扱わない条件を設定する（LB を押しながらの十字キーを別の操作に割り当てる場合など）。
-        /// true の間は選択を動かさず、EventSystem の移動も戻さない（条件の側で止めている移動を勝手に戻さないため）。
+        /// true の間は選択を動かさず、スコープが無い画面でも EventSystem の移動を止める。条件が外れると、スコープが無ければ移動を Unity に戻す。
         /// </summary>
         public NavigationController SetMoveBlocker(Func<bool> isBlocked)
         {
@@ -202,20 +202,28 @@ namespace Void2610.Arinn
 
         private void UpdateMove(EventSystem eventSystem, IFocusSource owner, NavigationScope scope)
         {
-            var blocked = IsMoveBlocked;
-            if (_input == null || scope is not { ResolvesMove: true })
+            if (_input == null)
             {
                 _repeater.Reset();
-                if (!blocked) _input?.RestoreUnityMove();
+                return;
+            }
+
+            // 止める条件の間は、スコープの有無にかかわらず EventSystem の移動も止める（修飾ボタンとの同時押しで Unity の移動が漏れないように）
+            if (IsMoveBlocked)
+            {
+                _input.SuppressUnityMove();
+                _repeater.Reset();
+                return;
+            }
+
+            if (scope is not { ResolvesMove: true })
+            {
+                _repeater.Reset();
+                _input.RestoreUnityMove();
                 return;
             }
 
             _input.SuppressUnityMove();
-            if (blocked)
-            {
-                _repeater.Reset();
-                return;
-            }
 
             var step = _repeater.Advance(_input.ReadMove(), Clock.UnscaledTime, _input.RepeatDelay, _input.RepeatRate, scope.InputMode, scope.Repeats);
             if (step == null) return;

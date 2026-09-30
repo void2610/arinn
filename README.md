@@ -162,7 +162,7 @@ public override NavigationScope CreateNavigationScope() => base.CreateNavigation
 |---|---|
 | `Register`、`Unregister`、`GetScope` | 外から画面にスコープを結び付ける（画面の宣言より優先する）。常時表示 UI や、クラスを変えられない画面に使う |
 | `SetInput` | 方向入力。`UseInputSystem()` がまとめて設定する |
-| `SetMoveBlocker` | 条件が成り立つ間は方向入力を移動として扱わない（LB を押しながらの十字キーなど） |
+| `SetMoveBlocker` | 条件が成り立つ間は方向入力を移動として扱わず、スコープがない画面でも EventSystem の move を止める（LB を押しながらの十字キーなど） |
 | `EnableHoverSelection`、`DisableHoverSelection` | ポインタが動いたときだけ、最前面に当たった Selectable を選ぶ。スコープの外は選ばない |
 | `SelectionChanged` | 選択の変化。`Source` で方向入力（`Input`）、ホバー（`Hover`）、それ以外（`Program`）を区別する |
 | `ActiveScope` | 直前の Tick で有効だったスコープ |

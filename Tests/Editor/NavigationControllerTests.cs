@@ -551,6 +551,20 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void 移動を止める条件が成り立つ間はスコープが無い画面でもEventSystemの移動を止める()
+        {
+            var blocked = true;
+            _navigation.SetMoveBlocker(() => blocked);
+
+            NextNavigationFrame();
+            Assert.That(_input.IsSuppressed, Is.True, "スコープが無くても、止める条件の間は Unity の移動を止める");
+
+            blocked = false;
+            NextNavigationFrame();
+            Assert.That(_input.IsSuppressed, Is.False, "条件が外れたら、スコープが無い画面では Unity の移動に戻す");
+        }
+
+        [Test]
         public void 基底画面のスコープはウィンドウが無いときに効く()
         {
             var root = CreateRoot("Base");
