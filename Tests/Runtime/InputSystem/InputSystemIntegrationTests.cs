@@ -22,6 +22,20 @@ namespace Void2610.Arinn.Tests
         private Keyboard _keyboard;
         private List<InputAction> _disabledActions;
 
+        // 利用側で有効なアクション（InputForUI の UI アクションや、動いている NavigationController が複製した move）は、有効なまま入力を隔離すると内部状態が壊れて NullReferenceException になる（Input System 1.18）
+        public override void Setup()
+        {
+            _disabledActions = InputSystem.ListEnabledActions();
+            foreach (var action in _disabledActions) action.Disable();
+            base.Setup();
+        }
+
+        public override void TearDown()
+        {
+            base.TearDown();
+            foreach (var action in _disabledActions) action.Enable();
+        }
+
         // 基底の SetUp（入力の隔離）の後に走る
         [SetUp]
         public void SetUpScene()
@@ -33,9 +47,6 @@ namespace Void2610.Arinn.Tests
                 eventSystem.enabled = false;
                 _disabledEventSystems.Add(eventSystem);
             }
-            // InputForUI が入力の隔離の後も自前の UI アクションにコールバックを残し、押すと NullReferenceException を投げる（Input System 1.18）
-            _disabledActions = InputSystem.ListEnabledActions();
-            foreach (var action in _disabledActions) action.Disable();
             _gamepad = InputSystem.AddDevice<Gamepad>();
             _keyboard = InputSystem.AddDevice<Keyboard>();
         }
@@ -51,7 +62,6 @@ namespace Void2610.Arinn.Tests
                 if (eventSystem) eventSystem.enabled = true;
             }
             _disabledEventSystems.Clear();
-            foreach (var action in _disabledActions) action.Enable();
         }
 
         [UnityTest]
