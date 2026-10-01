@@ -28,6 +28,7 @@
 - `SetMoveBlocker`：修飾ボタン（LB など）を押している間の方向入力を移動として扱わない
 - `SelectionChanged`：選択の変化を、方向入力、ホバー、それ以外に分けて通知する
 - `ScrollIntoView`：選択した要素が見える位置まで ScrollRect を動かす
+- `IDiagonalCursor` / `IDiagonalNavigationResolver`：`EightWay` の斜めの入力で、`GridCursor` は斜め先のマスへ直接動く（斜め先が止まれなければ動かない）
 - ホバー選択（`EnableHoverSelection`）：ポインタが動いたときだけ選び、スコープの外は選ばない
 - 仮想カーソル：`GridCursor` / `ListCursor` / `CursorResolver`。フォーカスはライブラリ内部のアンカーが受ける。止まれない位置を飛び越えるか手前で止まるかを選べる。`CursorResolver` の `returnsToAnchor` で、何が選ばれていても方向入力をカーソルへ向けられる
 - 拡張点：`INavigationInput`（方向入力）、`IPointerPositionSource`（ポインタの位置）、`INavigationResolver`（移動先の決め方）

@@ -27,4 +27,15 @@ namespace Void2610.Arinn
         /// </summary>
         void SetFocused(bool focused);
     }
+
+    /// <summary>
+    /// 斜め先のマスへ直接動ける仮想カーソル。<see cref="NavigationInputMode.EightWay"/> の斜めの入力で、横と縦に 1 歩ずつ動かす代わりに使われる。
+    /// </summary>
+    public interface IDiagonalCursor
+    {
+        /// <summary>
+        /// horizontal と vertical を合わせた斜め先へ 1 つ動かす。斜め先が範囲外か止まれないマスなら動かず false。
+        /// </summary>
+        bool TryMoveDiagonal(NavigationDirection horizontal, NavigationDirection vertical);
+    }
 }

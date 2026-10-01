@@ -8,7 +8,7 @@ namespace Void2610.Arinn
     /// 格子状のマスの上を動く仮想カーソル。位置は (列, 行) で、列は左が 0、行は上が 0。
     /// 止まれないマス（isNavigable が false）は飛ばして、その先で止まれるマスへ進む。
     /// </summary>
-    public sealed class GridCursor : VirtualCursor
+    public sealed class GridCursor : VirtualCursor, IDiagonalCursor
     {
         /// <summary>
         /// 位置が変わったときに発火する（方向入力でも <see cref="SetPosition"/> でも）。
@@ -86,6 +86,16 @@ namespace Void2610.Arinn
             if (next < 0) return false;
 
             Position = horizontal ? new Vector2Int(next, Position.y) : new Vector2Int(Position.x, next);
+            _onMoved.OnNext(Position);
+            return true;
+        }
+
+        public bool TryMoveDiagonal(NavigationDirection horizontal, NavigationDirection vertical)
+        {
+            var target = Position + new Vector2Int(horizontal == NavigationDirection.Right ? 1 : -1, vertical == NavigationDirection.Down ? 1 : -1);
+            if (target.x < 0 || target.x >= Columns || target.y < 0 || target.y >= Rows || !IsNavigable(target)) return false;
+
+            Position = target;
             _onMoved.OnNext(Position);
             return true;
         }

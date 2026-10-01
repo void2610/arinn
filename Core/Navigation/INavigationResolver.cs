@@ -14,4 +14,15 @@ namespace Void2610.Arinn
         /// </summary>
         Selectable Resolve(NavigationScope scope, Selectable current, NavigationDirection direction);
     }
+
+    /// <summary>
+    /// 斜めの入力を 1 回で解決できる解決器。解決しなければ <see cref="NavigationController"/> が横、縦の順に 1 歩ずつ動かす。
+    /// </summary>
+    public interface IDiagonalNavigationResolver
+    {
+        /// <summary>
+        /// current から horizontal と vertical を合わせた斜めへ動かす。この解決器で扱ったら true を返し、選択を移す先を next に入れる（動かさないなら null）。
+        /// </summary>
+        bool TryResolveDiagonal(NavigationScope scope, Selectable current, NavigationDirection horizontal, NavigationDirection vertical, out Selectable next);
+    }
 }

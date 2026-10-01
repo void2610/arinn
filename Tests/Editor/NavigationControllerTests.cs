@@ -321,6 +321,34 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void EightWayの斜めは横のマスが止まれなくても斜め先へ動く()
+        {
+            var window = CreateWindow("Window");
+            var area = CreateArea(window.transform);
+            using var cursor = new GridCursor(3, 3, p => p != new Vector2Int(1, 0), skipsBlocked: false);
+            using var resolver = new CursorResolver(cursor, area);
+            OpenWithScope(window, resolver.Anchor, new NavigationScope(window.transform).UseResolver(resolver).WithInputMode(NavigationInputMode.EightWay));
+
+            Press(new Vector2(0.7f, -0.7f));
+
+            Assert.That(cursor.Position, Is.EqualTo(new Vector2Int(1, 1)));
+        }
+
+        [Test]
+        public void EightWayの斜めは斜め先が止まれなければ横にも縦にも動かない()
+        {
+            var window = CreateWindow("Window");
+            var area = CreateArea(window.transform);
+            using var cursor = new GridCursor(3, 3, p => p != new Vector2Int(1, 1), skipsBlocked: false);
+            using var resolver = new CursorResolver(cursor, area);
+            OpenWithScope(window, resolver.Anchor, new NavigationScope(window.transform).UseResolver(resolver).WithInputMode(NavigationInputMode.EightWay));
+
+            Press(new Vector2(0.7f, -0.7f));
+
+            Assert.That(cursor.Position, Is.EqualTo(Vector2Int.zero));
+        }
+
+        [Test]
         public void PassMoveToElementの軸は移動せず要素のOnMoveへ渡す()
         {
             var window = CreateWindow("Window");

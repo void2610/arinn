@@ -35,6 +35,17 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void GridCursor_斜めは範囲外へ動かない()
+        {
+            using var cursor = new GridCursor(3, 3);
+
+            Assert.That(cursor.TryMoveDiagonal(NavigationDirection.Left, NavigationDirection.Down), Is.False);
+            Assert.That(cursor.Position, Is.EqualTo(Vector2Int.zero));
+            Assert.That(cursor.TryMoveDiagonal(NavigationDirection.Right, NavigationDirection.Down), Is.True);
+            Assert.That(cursor.Position, Is.EqualTo(new Vector2Int(1, 1)));
+        }
+
+        [Test]
         public void ListCursor_skipsBlockedがfalseなら回り込み先が止まれないとき動かない()
         {
             using var cursor = new ListCursor(3, isNavigable: i => i != 0, skipsBlocked: false).OnEdge(NavigationDirection.Right, EdgePolicy.WrapRow);

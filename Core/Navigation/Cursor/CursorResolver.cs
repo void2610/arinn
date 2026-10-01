@@ -19,7 +19,7 @@ namespace Void2610.Arinn
     /// SetDefaultFocusElement(resolver.Anchor);
     /// </code>
     /// </example>
-    public sealed class CursorResolver : INavigationResolver, IDisposable
+    public sealed class CursorResolver : INavigationResolver, IDiagonalNavigationResolver, IDisposable
     {
         /// <summary>
         /// カーソルの代わりにフォーカスを受ける要素。画面の既定要素にすればカーソルから始まる。
@@ -63,6 +63,17 @@ namespace Void2610.Arinn
 
             var edge = Cursor.GetEdge(direction);
             return edge.Kind == EdgePolicyKind.Exit ? scope.ResolveExit(edge, current) : null;
+        }
+
+        public bool TryResolveDiagonal(NavigationScope scope, Selectable current, NavigationDirection horizontal, NavigationDirection vertical, out Selectable next)
+        {
+            next = null;
+            if (Cursor is not IDiagonalCursor diagonal) return false;
+            if (current != _anchor && !_returnsToAnchor) return false;
+
+            diagonal.TryMoveDiagonal(horizontal, vertical);
+            if (current != _anchor) next = _anchor;
+            return true;
         }
 
         private static VirtualCursorAnchor CreateAnchor(RectTransform area)

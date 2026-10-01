@@ -151,7 +151,7 @@ public override NavigationScope CreateNavigationScope() => base.CreateNavigation
 | `IncludeNonInteractable()` | 操作できない（interactable が false の）要素も移動先にする。親の CanvasGroup で止められた要素は含めない |
 | `IncludeScrollbars()` | Scrollbar も移動先にする（既定では外す） |
 | `Block(from, direction)` | from で direction を押しても動かない、と明示する（壁）。`Link`、位置からの導出、端の宣言のどれより優先する |
-| `WithInputMode(mode)` | 移動入力の丸め方。`FourWay`（既定）、`FourWayPreferVertical`、`HorizontalOnly`、`VerticalOnly`、`EightWay`（斜めを水平、垂直の 2 歩にする） |
+| `WithInputMode(mode)` | 移動入力の丸め方。`FourWay`（既定）、`FourWayPreferVertical`、`HorizontalOnly`、`VerticalOnly`、`EightWay`（斜めは、`GridCursor` なら斜め先へ直接、それ以外は水平、垂直の 2 歩にする） |
 | `WithoutRepeat()`、`WithRepeat()` | 押しっぱなしでもリピートせず、押し直したときだけ 1 歩動かす。後から戻せる |
 | `PassMoveToElement(predicate, axes)` | 当てはまる要素を選んでいる間、その軸の入力を移動ではなく要素の OnMove へ渡す（スライダーの左右など） |
 | `WithScrollIntoView(scrollRect, center)` | 選択した要素が見える位置までスクロールする。center なら中央へ寄せる。ホバーでの選択には追従しない |

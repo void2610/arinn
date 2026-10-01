@@ -238,6 +238,16 @@ namespace Void2610.Arinn
                 return;
             }
 
+            // 斜め先へ直接動ける解決器（格子の仮想カーソル）なら 1 回で解決する
+            if (step.Value.Secondary is { } vertical
+                && scope.Resolver is IDiagonalNavigationResolver diagonal
+                && diagonal.TryResolveDiagonal(scope, current, step.Value.Primary, vertical, out var diagonalNext))
+            {
+                if (diagonalNext && diagonalNext != current && scope.Contains(diagonalNext) && scope.CanNavigateTo(diagonalNext))
+                    SelectBy(eventSystem, diagonalNext.gameObject, SelectionChangeSource.Input);
+                return;
+            }
+
             // 斜めは水平、垂直の順に 1 歩ずつ動かす。1 歩目で選択が変わったら 2 歩目は打ち切る（仮想カーソルの斜めだけを 2 歩にし、選択が 1 回の入力で 2 度変わらないようにする）
             var moved = MoveOnce(eventSystem, scope, current, step.Value.Primary);
             if (step.Value.Secondary is { } secondary && moved == current) MoveOnce(eventSystem, scope, current, secondary);
