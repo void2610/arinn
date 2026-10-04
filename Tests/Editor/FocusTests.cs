@@ -151,6 +151,23 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void フォーカスを自動で戻している間だけIsRecoveringFocusがtrueになる()
+        {
+            var target = Create("Target");
+            var recorder = target.AddComponent<SelectRecorder>();
+            recorder.Manager = Manager;
+            EventSystem.SetSelectedGameObject(target);
+            Assert.That(recorder.RecoveringOnSelect, Is.EqualTo(new[] { false }), "操作による選択では false");
+            NextFrame();
+
+            EventSystem.SetSelectedGameObject(null);
+            NextFrame();
+
+            Assert.That(recorder.RecoveringOnSelect, Is.EqualTo(new[] { false, true }), "自動で戻した選択では true");
+            Assert.That(Manager.IsRecoveringFocus, Is.False, "戻し終えたら false");
+        }
+
+        [Test]
         public void フォーカスが消えたときウィンドウがなければ基底画面へ戻す()
         {
             var baseScreen = CreateBase("Base");
@@ -488,6 +505,14 @@ namespace Void2610.Arinn.Tests
             NextFrame();
 
             Assert.That(Selected, Is.EqualTo(target), "既定要素ではなく直前の要素へ戻す");
+        }
+
+        private sealed class SelectRecorder : MonoBehaviour, UnityEngine.EventSystems.ISelectHandler
+        {
+            public UIFocusManager Manager;
+            public readonly System.Collections.Generic.List<bool> RecoveringOnSelect = new();
+
+            public void OnSelect(UnityEngine.EventSystems.BaseEventData eventData) => RecoveringOnSelect.Add(Manager.IsRecoveringFocus);
         }
     }
 }
