@@ -56,11 +56,6 @@ namespace Void2610.Arinn
         public bool IsInPersistentUIMode { get; private set; }
 
         /// <summary>
-        /// 消えたフォーカスを自動で戻している最中か。選択時の効果音など、プレイヤーの操作で選んだときだけ動かしたい処理が読む。
-        /// </summary>
-        public bool IsRecoveringFocus { get; private set; }
-
-        /// <summary>
         /// ウィンドウが 1 枚もないときのフォーカス先（ウィンドウの下にある画面）。
         /// </summary>
         public IFocusSource BaseFocusSource { get; private set; }
@@ -455,7 +450,7 @@ namespace Void2610.Arinn
             if (IsFocusable(_lastSelected))
             {
                 _focusLostSince = null;
-                RecoverSelected(_lastSelected);
+                SetSelected(_lastSelected);
                 return;
             }
 
@@ -465,20 +460,7 @@ namespace Void2610.Arinn
 
             _focusLostSince = null;
             var source = TopWindow ? TopWindow : BaseFocusSource;
-            RecoverSelected(GetDefaultFocusElement(source));
-        }
-
-        private void RecoverSelected(GameObject target)
-        {
-            IsRecoveringFocus = true;
-            try
-            {
-                SetSelected(target);
-            }
-            finally
-            {
-                IsRecoveringFocus = false;
-            }
+            SetSelected(GetDefaultFocusElement(source));
         }
 
         private void ClearPersistentUIFocus()
