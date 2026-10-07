@@ -10,8 +10,8 @@ using VContainer.Unity;
 namespace Void2610.Arinn
 {
     /// <summary>
-    /// ウィンドウのスタックとフォーカスを管理する。
-    /// ウィンドウを開くときに今のフォーカスを預かり、閉じたときに返す。フォーカスが消えたら自動で戻す。
+    /// フォーカスを一時的に持つもの（ウィンドウと、常時表示 UI の借用）を 1 つのスコープのスタックで管理する。
+    /// スコープを積むときに今のフォーカスを預かり、外したときに返す。フォーカスが消えたら自動で戻す。
     /// VContainer では <see cref="ArinnContainerBuilderExtensions.RegisterArinn"/> で登録し、毎フレームの <see cref="Tick"/> を回す。
     /// </summary>
     public sealed class UIFocusManager : ITickable, IDisposable
@@ -24,17 +24,17 @@ namespace Void2610.Arinn
         /// <summary>
         /// 開いているウィンドウがあるか。
         /// </summary>
-        public bool HasOpenWindows => _windowStack.Count > 0;
+        public bool HasOpenWindows => _scopes.Exists(scope => scope.IsWindow);
 
         /// <summary>
         /// 最前面のウィンドウ。開いていなければ null。
         /// </summary>
-        public WindowBase TopWindow => _windowStack.Count > 0 ? _windowStack[^1].Window : null;
+        public WindowBase TopWindow => _scopes.FindLast(scope => scope.IsWindow)?.Window;
 
         /// <summary>
         /// 開いているウィンドウの数。
         /// </summary>
-        public int WindowCount => _windowStack.Count;
+        public int WindowCount => _scopes.FindAll(scope => scope.IsWindow).Count;
 
         /// <summary>
         /// フォーカスが、最前面のウィンドウ（なければ基底画面）の既定要素にあるか。
@@ -53,7 +53,7 @@ namespace Void2610.Arinn
         /// <summary>
         /// 常時表示 UI にフォーカスを借りている最中か。
         /// </summary>
-        public bool IsInPersistentUIMode { get; private set; }
+        public bool IsInPersistentUIMode => BorrowScope != null;
 
         /// <summary>
         /// ウィンドウが 1 枚もないときのフォーカス先（ウィンドウの下にある画面）。
@@ -76,15 +76,12 @@ namespace Void2610.Arinn
         private const int WAIT_FOR_ACTIVE_MAX_FRAMES = 120;
 
         // 末尾が最前面
-        private readonly List<(WindowBase Window, GameObject PreviousFocus)> _windowStack = new();
+        private readonly List<FocusScope> _scopes = new();
         private IInputScopeGate _inputScopeGate;
         private ISubmitHoldProbe _submitHoldProbe;
         private FocusRequest _pendingFocus;
         // 常時表示 UI へ移る予約。ウィンドウの予約と取り合わないよう別の枠で持つ
         private FocusRequest _pendingPersistentFocus;
-
-        private GameObject _persistentFocusPrevious;
-        private GameObject _persistentFocusOwner;
 
         private GameObject _lastSelected;
         private float? _focusLostSince;
@@ -109,7 +106,7 @@ namespace Void2610.Arinn
         /// <summary>
         /// 指定ウィンドウがスタックに積まれているか。
         /// </summary>
-        public bool IsWindowInStack(WindowBase window) => _windowStack.FindIndex(item => item.Window == window) >= 0;
+        public bool IsWindowInStack(WindowBase window) => _scopes.Exists(scope => scope.Window == window);
 
         /// <summary>
         /// 基底画面だけを差し替える。フォーカスは動かさない。
@@ -117,7 +114,7 @@ namespace Void2610.Arinn
         public void SetBaseFocusSource(IFocusSource source) => BaseFocusSource = source;
 
         /// <summary>
-        /// 常時表示 UI へフォーカスを借りる。ウィンドウスタックには積まない。
+        /// 常時表示 UI へフォーカスを借りる。借用のスコープとして一番上に積む。
         /// </summary>
         public void EnterPersistentUIFocus(GameObject element) => EnterPersistentUIFocus(element, element);
 
@@ -169,8 +166,8 @@ namespace Void2610.Arinn
 
             // 先に入力を受け付ける状態にしてから、フォーカスを予約する
             window.Show();
-            if (_windowStack.Count == 0) _inputScopeGate?.OnFirstWindowOpened();
-            _windowStack.Add((window, CurrentSelected));
+            if (!HasOpenWindows) _inputScopeGate?.OnFirstWindowOpened();
+            _scopes.Add(FocusScope.ForWindow(window, CurrentSelected));
             // 同じフレーム内の上書きを避け、動的に作られる既定要素も拾えるよう 1 フレーム後に評価する
             _pendingFocus = FocusRequest.NextFrame(() => GetDefaultFocusElement(window), Clock.FrameCount);
         }
@@ -206,14 +203,14 @@ namespace Void2610.Arinn
         }
 
         /// <summary>
-        /// 一番上のフォーカススコープを 1 つ閉じる。ウィンドウが開いていればそれを閉じ、
-        /// なければ常時表示 UI から元のフォーカスへ戻る。Cancel 入力の既定の処理として使う。
+        /// 一番上のフォーカススコープを 1 つ閉じる。借用なら借りる前のフォーカスへ戻り、
+        /// ウィンドウなら閉じる（Cancel で閉じられないウィンドウは閉じない）。Cancel 入力の既定の処理として使う。
         /// </summary>
         /// <returns>何かを閉じた場合は true</returns>
         public bool TryPopScope()
         {
-            if (TryCloseTopWindow()) return true;
-            if (HasOpenWindows || !IsInPersistentUIMode) return false;
+            if (_scopes.Count == 0) return false;
+            if (_scopes[^1].IsWindow) return TryCloseTopWindow();
             ExitPersistentUIFocus();
             return true;
         }
@@ -225,17 +222,17 @@ namespace Void2610.Arinn
         {
             _pendingFocus = null;
             _pendingPersistentFocus = null;
-            if (_windowStack.Count == 0) return;
+            if (!HasOpenWindows) return;
 
-            var bottomPreviousFocus = _windowStack[0].PreviousFocus;
-            // Hide の購読側が開き直しても壊れないよう、先にスタックを空にしてから閉じる
-            var windows = _windowStack.ConvertAll(item => item.Window);
-            _windowStack.Clear();
+            var bottomPreviousFocus = _scopes.Find(scope => scope.IsWindow).PreviousFocus;
+            // Hide の購読側が開き直しても壊れないよう、先にスタックからウィンドウを外してから閉じる
+            var windows = _scopes.FindAll(scope => scope.IsWindow).ConvertAll(scope => scope.Window);
+            _scopes.RemoveAll(scope => scope.IsWindow);
             foreach (var window in windows)
                 window.Hide();
 
             // 購読側が開き直した場合は、そのウィンドウの入力とフォーカスを奪わない
-            if (_windowStack.Count > 0) return;
+            if (HasOpenWindows) return;
             _inputScopeGate?.OnLastWindowClosed();
             RestoreFocusAfterLastWindow(bottomPreviousFocus);
         }
@@ -261,16 +258,17 @@ namespace Void2610.Arinn
         /// </summary>
         public void EnterPersistentUIFocus(GameObject element, GameObject owner)
         {
-            if (IsInPersistentUIMode)
+            var borrow = BorrowScope;
+            if (borrow != null && borrow == TopScope)
             {
-                _persistentFocusOwner = owner;
+                borrow.Owner = owner;
                 SetSelected(element);
                 return;
             }
 
-            _persistentFocusPrevious = CurrentSelected;
-            _persistentFocusOwner = owner;
-            IsInPersistentUIMode = true;
+            // 借用の上に開いたウィンドウから借り直したときは、古い借用を外して一番上に積み直す
+            if (borrow != null) _scopes.Remove(borrow);
+            _scopes.Add(FocusScope.ForBorrow(CurrentSelected, owner));
             // 決定との同時押しで移った直後に、決定の離しで移動先が押されないよう、決定が離れるまで待ってから移す
             _pendingPersistentFocus = FocusRequest.NextFrame(() => element, Clock.FrameCount, holdWhile: IsSubmitHeld, isPersistent: true);
         }
@@ -280,7 +278,7 @@ namespace Void2610.Arinn
         /// </summary>
         public void TogglePersistentUIFocus(GameObject element, GameObject owner)
         {
-            if (IsInPersistentUIMode && _persistentFocusOwner == owner)
+            if (BorrowScope?.Owner == owner)
             {
                 ExitPersistentUIFocus();
                 return;
@@ -293,10 +291,14 @@ namespace Void2610.Arinn
         /// </summary>
         public void ExitPersistentUIFocus()
         {
-            if (!IsInPersistentUIMode) return;
+            var borrow = BorrowScope;
+            if (borrow == null) return;
 
-            var previous = _persistentFocusPrevious;
+            var wasTop = borrow == TopScope;
+            var previous = borrow.PreviousFocus;
             ClearPersistentUIFocus();
+            // 借用の上にウィンドウが開いていれば、そのウィンドウのフォーカスはそのまま
+            if (!wasTop) return;
             // 借りる前の要素が消えていたら、最前面のウィンドウ（なければ基底画面）の既定要素へ戻す
             if (IsFocusable(previous)) SetSelected(previous);
             else SetSelected(GetDefaultFocusElement(TopWindow ? TopWindow : BaseFocusSource));
@@ -347,6 +349,12 @@ namespace Void2610.Arinn
             return _submitHoldProbe?.IsSubmitHeld == true;
         }
 
+        private FocusScope TopScope => _scopes.Count > 0 ? _scopes[^1] : null;
+
+        private FocusScope BorrowScope => _scopes.Find(scope => !scope.IsWindow);
+
+        private bool IsBorrowOnTop => TopScope is { IsWindow: false };
+
         private static GameObject CurrentSelected => EventSystem.current ? EventSystem.current.currentSelectedGameObject : null;
 
         private static GameObject GetDefaultFocusElement(IFocusSource source)
@@ -356,18 +364,20 @@ namespace Void2610.Arinn
 
         private void PopWindow(WindowBase window)
         {
-            var index = _windowStack.FindIndex(item => item.Window == window);
+            var index = _scopes.FindIndex(scope => scope.Window == window);
             if (index < 0) return;
 
-            var previousFocus = _windowStack[index].PreviousFocus;
-            var wasTop = index == _windowStack.Count - 1;
-            _windowStack.RemoveAt(index);
+            var previousFocus = _scopes[index].PreviousFocus;
+            var wasTop = index == _scopes.Count - 1;
+            _scopes.RemoveAt(index);
 
-            if (_windowStack.Count == 0)
+            if (!HasOpenWindows)
             {
                 _pendingFocus = null;
                 _inputScopeGate?.OnLastWindowClosed();
-                RestoreFocusAfterLastWindow(previousFocus);
+                // 借りている常時表示 UI から開いたウィンドウなら、借りている要素へ戻る
+                if (wasTop && IsBorrowOnTop && IsFocusable(previousFocus)) SetSelected(previousFocus);
+                else RestoreFocusAfterLastWindow(previousFocus);
                 return;
             }
 
@@ -433,7 +443,7 @@ namespace Void2610.Arinn
         {
             var eventSystem = EventSystem.current;
             // 常時表示 UI を借りている間は、借りた側の制御に任せる
-            if (!eventSystem || IsInPersistentUIMode)
+            if (!eventSystem || IsBorrowOnTop)
             {
                 _focusLostSince = null;
                 return;
@@ -465,23 +475,18 @@ namespace Void2610.Arinn
 
         private void ClearPersistentUIFocus()
         {
-            IsInPersistentUIMode = false;
+            _scopes.RemoveAll(scope => !scope.IsWindow);
             _pendingPersistentFocus = null;
-            _persistentFocusPrevious = null;
-            _persistentFocusOwner = null;
         }
 
         private void OnActiveSceneChanged(Scene current, Scene next)
         {
             // 前のシーンの UI への参照を捨て、新しいシーンで登録し直してもらう
-            _windowStack.Clear();
+            _scopes.Clear();
             _pendingFocus = null;
             _pendingPersistentFocus = null;
             _inputScopeGate = null;
             BaseFocusSource = null;
-            _persistentFocusPrevious = null;
-            _persistentFocusOwner = null;
-            IsInPersistentUIMode = false;
             _lastSelected = null;
             _focusLostSince = null;
         }
@@ -502,6 +507,22 @@ namespace Void2610.Arinn
             // 行き先がないときは今のフォーカスを消さない（消えたフォーカスは監視側が戻す）
             if (!eventSystem || !target || !target.activeInHierarchy) return;
             eventSystem.SetSelectedGameObject(target);
+        }
+
+        /// <summary>
+        /// フォーカスを一時的に持つもの 1 つ分。ウィンドウか、常時表示 UI の借用のどちらか。
+        /// </summary>
+        private sealed class FocusScope
+        {
+            public WindowBase Window { get; private set; }
+            public GameObject PreviousFocus { get; private set; }
+            public GameObject Owner { get; set; }
+            // 破棄されたウィンドウを借用と取り違えないよう、種類は参照の有無ではなく作ったときに決める
+            public bool IsWindow { get; private set; }
+
+            public static FocusScope ForWindow(WindowBase window, GameObject previousFocus) => new() { Window = window, PreviousFocus = previousFocus, IsWindow = true };
+
+            public static FocusScope ForBorrow(GameObject previousFocus, GameObject owner) => new() { PreviousFocus = previousFocus, Owner = owner };
         }
 
         public void Dispose()

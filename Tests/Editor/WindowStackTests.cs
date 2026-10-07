@@ -132,6 +132,62 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void TryPopScope_ウィンドウの上から借りた常時表示UIは先に戻りウィンドウは開いたまま()
+        {
+            var window = CreateWindow("A");
+            Manager.ShowWindow(window);
+            NextFrame();
+            Manager.EnterPersistentUIFocus(Create("Persistent"));
+            NextFrame();
+
+            Assert.That(Manager.TryPopScope(), Is.True);
+
+            Assert.That(Manager.IsInPersistentUIMode, Is.False);
+            Assert.That(Manager.TopWindow, Is.EqualTo(window));
+            Assert.That(Selected, Is.EqualTo(window.Default));
+        }
+
+        [Test]
+        public void TryPopScope_Cancelで閉じないウィンドウの上の借用からも戻れる()
+        {
+            var window = CreateWindow("A");
+            window.ClosableByCancel = false;
+            Manager.ShowWindow(window);
+            NextFrame();
+            Manager.EnterPersistentUIFocus(Create("Persistent"));
+            NextFrame();
+
+            Assert.That(Manager.TryPopScope(), Is.True);
+            Assert.That(Manager.IsInPersistentUIMode, Is.False);
+
+            Assert.That(Manager.TryPopScope(), Is.False, "最前面は Cancel で閉じないウィンドウなので何もしない");
+            Assert.That(Manager.TopWindow, Is.EqualTo(window));
+        }
+
+        [Test]
+        public void 借りている常時表示UIから開いた最後のウィンドウを閉じると借りている要素へ戻る()
+        {
+            Manager.SetBaseFocusSource(CreateBase("Base"));
+            var persistent = Create("Persistent");
+            Manager.EnterPersistentUIFocus(persistent);
+            NextFrame();
+            var window = CreateWindow("A");
+            Manager.ShowWindow(window);
+            NextFrame();
+
+            Manager.HideWindow(window);
+
+            Assert.That(Manager.IsInPersistentUIMode, Is.True);
+            Assert.That(Selected, Is.EqualTo(persistent));
+        }
+
+        [Test]
+        public void TryPopScope_何も積まれていなければ何もしない()
+        {
+            Assert.That(Manager.TryPopScope(), Is.False);
+        }
+
+        [Test]
         public void Instance_生成で差し替わりDisposeで外れる()
         {
             Assert.That(UIFocusManager.Instance, Is.EqualTo(Manager));
