@@ -19,11 +19,13 @@ namespace Void2610.Arinn
         /// 指定方向で最も近い候補の添字を返す。無ければ -1。
         /// 進行方向の反対側にあるものは対象外。直交軸で重ならない候補は、中心のずれが進行方向の距離より小さいものだけを対象にする
         /// （段の違う端から斜めの別の段へ飛ばないようにするため）。
+        /// 直交軸で重なる候補（左右移動なら同じ行、上下移動なら同じ列）があれば、遠くても別の段の候補より優先する。
         /// </summary>
         public static int FindNext(Rect from, IReadOnlyList<Rect> candidates, NavigationDirection direction)
         {
             var best = -1;
             var bestScore = float.MaxValue;
+            var bestOverlaps = false;
             for (var i = 0; i < candidates.Count; i++)
             {
                 var candidate = candidates[i];
@@ -31,12 +33,15 @@ namespace Void2610.Arinn
                 if (primary <= MIN_PRIMARY_DISTANCE) continue;
 
                 var perpendicular = PerpendicularOffset(from, candidate, direction);
-                if (!OverlapsPerpendicular(from, candidate, direction) && perpendicular >= primary) continue;
+                var overlaps = OverlapsPerpendicular(from, candidate, direction);
+                if (!overlaps && perpendicular >= primary) continue;
+                if (bestOverlaps && !overlaps) continue;
 
                 var score = primary + perpendicular * PERPENDICULAR_WEIGHT;
-                if (score >= bestScore) continue;
+                if (overlaps == bestOverlaps && score >= bestScore) continue;
                 best = i;
                 bestScore = score;
+                bestOverlaps = overlaps;
             }
             return best;
         }

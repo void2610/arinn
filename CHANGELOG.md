@@ -23,7 +23,7 @@
 - `NavigationScope`：スコープの根、端の挙動（`EdgePolicy.Stop` / `Exit` / `WrapRow`）、候補の除外、要素ごとの移動先の明示（`Link`）、操作できない要素と Scrollbar を候補に含めるか（`IncludeNonInteractable`、`IncludeScrollbars`）、壁（`Block`）、入力の丸め方（`WithInputMode`）とリピートの有無（`WithoutRepeat`、`WithRepeat`）、要素への方向入力の受け渡し（`PassMoveToElement`）、選択に合わせたスクロール（中央寄せも可）、解決器の差し替えをコードで宣言する
 - `INavigationScopeSource`：画面が自分のスコープを宣言する。`WindowBase` は既定でウィンドウの transform を根にし、`CreateNavigationScope` のオーバーライドで変えられる。スコープは最初に今の画面になったときに一度だけ作るので、登録の手順が要らない
 - `NavigationController.Register`：外から画面にスコープを結び付ける（画面の宣言より優先する）
-- `SpatialResolver` と `DirectionalResolver`：入力の時点の RectTransform の位置から移動先を決める
+- `SpatialResolver` と `DirectionalResolver`：入力の時点の RectTransform の位置から移動先を決める。同じ行（上下移動なら同じ列）の候補を、別の段の近い候補より優先する
 - `DirectionRepeater`：移動入力を 4 方向へ丸め、押し続けたときにリピートする
 - `SetMoveBlocker`：修飾ボタン（LB など）を押している間の方向入力を移動として扱わない
 - `SelectionChanged`：選択の変化を、方向入力、ホバー、それ以外に分けて通知する

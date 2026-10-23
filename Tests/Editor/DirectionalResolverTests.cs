@@ -30,6 +30,15 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void FindNext_同じ行の遠い候補を別の段の近い候補より優先する()
+        {
+            // 2 つ並んだ上の段の右隣と、3 つ並んだ下の段の真ん中。点数だけなら下の段が近い
+            var candidates = new[] { At(280f, -125f), At(560f, 0f) };
+
+            Assert.That(DirectionalResolver.FindNext(At(0f, 0f), candidates, NavigationDirection.Right), Is.EqualTo(1));
+        }
+
+        [Test]
         public void FindNext_直交軸で重ならず大きくずれた候補へは飛ばない()
         {
             // 下の段の、右へ少しだけずれた候補。右移動で別の段へ斜めに飛ばない
