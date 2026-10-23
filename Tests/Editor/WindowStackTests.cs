@@ -6,6 +6,9 @@ namespace Void2610.Arinn.Tests
     public sealed class WindowStackTests : ArinnTestFixture
     {
         [Test]
+        public void TryPopScope_何も積まれていなければ何もしない() => Assert.That(Manager.TryPopScope(), Is.False);
+
+        [Test]
         public void ShowWindow_開くと表示と入力受付が一緒に切り替わる()
         {
             var window = CreateWindow("A");
@@ -179,12 +182,6 @@ namespace Void2610.Arinn.Tests
 
             Assert.That(Manager.IsInPersistentUIMode, Is.True);
             Assert.That(Selected, Is.EqualTo(persistent));
-        }
-
-        [Test]
-        public void TryPopScope_何も積まれていなければ何もしない()
-        {
-            Assert.That(Manager.TryPopScope(), Is.False);
         }
 
         [Test]
