@@ -95,7 +95,7 @@ namespace Void2610.Arinn
 
         /// <summary>
         /// ポインタが動いたときだけ、ポインタの下の要素を選択する。ポインタが止まっている間はパッドの操作を上書きしない。
-        /// スコープがあれば、スコープの外の要素は選択しない。
+        /// スコープがあれば、スコープの外の要素と、スコープで除外した要素は選択しない。
         /// </summary>
         /// <param name="pointer">ポインタの位置</param>
         /// <param name="ignore">ホバーの対象から外すオブジェクト（Raycast で当たったオブジェクトが渡る）。外したものは貫通して下を見る</param>
@@ -328,7 +328,7 @@ namespace Void2610.Arinn
                 // 最前面に当たったものだけを見る。操作できない要素に当たっても、その下へは貫通させない
                 var selectable = hit.GetComponentInParent<Selectable>();
                 if (!selectable || !NavigationScope.IsNavigable(selectable)) return null;
-                if (scope != null && !scope.Contains(selectable)) return null;
+                if (scope != null && (!scope.Contains(selectable) || scope.IsExcluded(selectable))) return null;
                 return selectable.gameObject;
             }
             return null;

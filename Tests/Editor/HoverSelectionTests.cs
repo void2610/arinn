@@ -55,6 +55,23 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void スコープで除外した要素は選ばない()
+        {
+            var window = CreateWindow("Window");
+            var inside = CreateButton("Inside", window.transform, Vector2.zero);
+            var overlay = CreateButton("Overlay", window.transform, new Vector2(300f, 0f));
+            window.Default = inside.gameObject;
+            _navigation.Register(window, new NavigationScope(window.transform).Exclude(selectable => selectable == overlay));
+            Manager.ShowWindow(window);
+            NextNavigationFrame();
+            _hits.Add(overlay.gameObject);
+
+            MovePointer();
+
+            Assert.That(Selected, Is.EqualTo(inside.gameObject));
+        }
+
+        [Test]
         public void 除外したオブジェクトは貫通して下の要素を選ぶ()
         {
             var overlay = Create("Overlay");

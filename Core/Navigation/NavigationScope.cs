@@ -273,6 +273,18 @@ namespace Void2610.Arinn
         }
 
         /// <summary>
+        /// <see cref="Exclude"/> で選択先から外した要素か。
+        /// </summary>
+        public bool IsExcluded(Selectable selectable)
+        {
+            foreach (var exclude in _excludes)
+            {
+                if (exclude(selectable)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// <see cref="EdgePolicy.Exit"/> の抜け先を検証して返す。スコープ内で操作でき、自分自身でなければ抜け先、それ以外は null（止まる）。
         /// </summary>
         public Selectable ResolveExit(EdgePolicy policy, Selectable current)
@@ -322,15 +334,6 @@ namespace Void2610.Arinn
                 _blocks.Remove(key);
             }
             _deadLinks.Clear();
-        }
-
-        private bool IsExcluded(Selectable selectable)
-        {
-            foreach (var exclude in _excludes)
-            {
-                if (exclude(selectable)) return true;
-            }
-            return false;
         }
     }
 }
