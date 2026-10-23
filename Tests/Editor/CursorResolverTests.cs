@@ -76,6 +76,28 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void 範囲のレイアウトグループはアンカーを並べない()
+        {
+            var area = CreateRoot("LayoutArea");
+            area.sizeDelta = new Vector2(300f, 100f);
+            var layout = area.gameObject.AddComponent<UnityEngine.UI.HorizontalLayoutGroup>();
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.spacing = 20f;
+            layout.childControlWidth = false;
+            layout.childForceExpandWidth = false;
+            var item = CreateRootFor("Item", area);
+            item.sizeDelta = new Vector2(100f, 100f);
+            using var cursor = new ListCursor(1);
+            var resolver = new CursorResolver(cursor, area);
+
+            UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(area);
+
+            // アンカーが並べば間隔の分だけ左へずれる
+            Assert.That(item.anchoredPosition.x, Is.EqualTo(150f).Within(0.01f));
+            resolver.Dispose();
+        }
+
+        [Test]
         public void Disposeでアンカーを破棄する()
         {
             var anchor = _resolver.Anchor.gameObject;

@@ -11,8 +11,11 @@ namespace Void2610.Arinn
     /// </summary>
     [AddComponentMenu("")]
     [DisallowMultipleComponent]
-    public sealed class VirtualCursorAnchor : Selectable, ISubmitHandler
+    public sealed class VirtualCursorAnchor : Selectable, ISubmitHandler, ILayoutIgnorer
     {
+        // 範囲の全面を覆う内部の要素なので、範囲にレイアウトグループがあっても子として並べさせない
+        public bool ignoreLayout => true;
+
         internal Observable<bool> OnFocusChanged => _onFocusChanged;
 
         internal Observable<Unit> OnSubmitted => _onSubmitted;
