@@ -50,6 +50,7 @@ namespace Void2610.Arinn
         private Func<bool> _moveBlocker;
         private IPointerPositionSource _pointer;
         private Func<GameObject, bool> _hoverIgnore;
+        private Func<Selectable, bool> _hoverBlock;
         private Vector2? _lastPointerPosition;
 
         private GameObject _lastSelected;
@@ -99,10 +100,12 @@ namespace Void2610.Arinn
         /// </summary>
         /// <param name="pointer">ポインタの位置</param>
         /// <param name="ignore">ホバーの対象から外すオブジェクト（Raycast で当たったオブジェクトが渡る）。外したものは貫通して下を見る</param>
-        public NavigationController EnableHoverSelection(IPointerPositionSource pointer, Func<GameObject, bool> ignore = null)
+        /// <param name="block">ホバーでは選ばない Selectable。当たってもその下へは貫通させない（クリックで選択されない Navigation が None の要素など）</param>
+        public NavigationController EnableHoverSelection(IPointerPositionSource pointer, Func<GameObject, bool> ignore = null, Func<Selectable, bool> block = null)
         {
             _pointer = pointer;
             _hoverIgnore = ignore;
+            _hoverBlock = block;
             _lastPointerPosition = null;
             return this;
         }
@@ -111,6 +114,7 @@ namespace Void2610.Arinn
         {
             _pointer = null;
             _hoverIgnore = null;
+            _hoverBlock = null;
             _lastPointerPosition = null;
         }
 
@@ -328,6 +332,7 @@ namespace Void2610.Arinn
                 // 最前面に当たったものだけを見る。操作できない要素に当たっても、その下へは貫通させない
                 var selectable = hit.GetComponentInParent<Selectable>();
                 if (!selectable || !NavigationScope.IsNavigable(selectable)) return null;
+                if (_hoverBlock != null && _hoverBlock(selectable)) return null;
                 if (scope != null && (!scope.Contains(selectable) || scope.IsExcluded(selectable))) return null;
                 return selectable.gameObject;
             }

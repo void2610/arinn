@@ -556,13 +556,21 @@ Selectable でない対象（仮想カーソルのマスなど）は、`ScrollIn
 
 - 子の Graphic（ボタンのラベルなど）に当たっても、親の Selectable を選ぶ。
 - 最前面に当たったものが Selectable でないか、操作できない Selectable なら、その下は選ばない（奥の要素へ貫通させない）。
-- 今のスコープの外にある要素は選ばない。
+- 今のスコープの外にある要素と、スコープで除外した要素は選ばない。
 
 特定のオブジェクトを貫通させたいときは、除外の条件を渡す。
 条件に当てはまるオブジェクトは無視して、その下を見る。
 
 ```csharp
 navigation.UseInputSystem(hoverIgnore: hit => hit.CompareTag("IgnoreHoverSelection"));
+```
+
+ホバーでは選ばせたくない Selectable は、止める条件を渡す。
+条件に当てはまる Selectable は選ばず、その下も選ばない（ポインタが乗っているのはその要素なので、奥の要素へ貫通させない）。
+Unity の Selectable はクリックでは Navigation が None の要素を選ばないので、ホバーもそれに揃えるなら次のようにする。
+
+```csharp
+navigation.UseInputSystem(hoverBlock: selectable => selectable.navigation.mode == Navigation.Mode.None);
 ```
 
 ホバーを使わないなら `UseInputSystem(hoverSelection: false)` にする。

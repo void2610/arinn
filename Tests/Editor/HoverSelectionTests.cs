@@ -86,6 +86,21 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void 止める条件に当たった要素は選ばず下へも貫通しない()
+        {
+            var root = CreateRoot("Root");
+            var blocked = CreateButton("Blocked", root, Vector2.zero);
+            var below = CreateButton("Below", root, Vector2.zero);
+            _navigation.EnableHoverSelection(_pointer, block: selectable => selectable == blocked);
+            _hits.Add(blocked.gameObject);
+            _hits.Add(below.gameObject);
+
+            MovePointer();
+
+            Assert.That(Selected, Is.Null);
+        }
+
+        [Test]
         public void 選択できないものに当たったら下の要素は選ばない()
         {
             var overlay = Create("Overlay");
