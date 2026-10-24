@@ -86,6 +86,71 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void ReleaseBase_ウィンドウが無ければ外した画面の選択を捨てて直前の選択へも戻さない()
+        {
+            var baseScreen = CreateBase("Base");
+            Manager.SwitchBase(baseScreen);
+            NextFrame();
+
+            Manager.ReleaseBase(baseScreen);
+            AdvanceSeconds(0f);
+            AdvanceSeconds(0.6f);
+
+            Assert.That(Manager.BaseFocusSource, Is.Null);
+            Assert.That(Selected, Is.Null);
+        }
+
+        [Test]
+        public void ReleaseBase_基底画面でなければ何もしない()
+        {
+            var current = CreateBase("Current");
+            Manager.SwitchBase(current);
+            NextFrame();
+
+            Manager.ReleaseBase(CreateBase("Other"));
+            Manager.ReleaseBase(null);
+            NextFrame();
+
+            Assert.That(Manager.BaseFocusSource, Is.EqualTo(current));
+            Assert.That(Selected, Is.EqualTo(current.Default));
+        }
+
+        [Test]
+        public void ReleaseBase_ウィンドウが開いていればウィンドウの選択を動かさず閉じても外した画面へ戻さない()
+        {
+            var baseScreen = CreateBase("Base");
+            Manager.SwitchBase(baseScreen);
+            var window = CreateWindow("A");
+            Manager.ShowWindow(window);
+            NextFrame();
+
+            Manager.ReleaseBase(baseScreen);
+            NextFrame();
+
+            Assert.That(Manager.BaseFocusSource, Is.Null);
+            Assert.That(Selected, Is.EqualTo(window.Default));
+
+            Manager.HideWindow(window);
+            AdvanceSeconds(0f);
+            AdvanceSeconds(0.6f);
+            Assert.That(Selected, Is.Null, "閉じても外した画面の要素へ戻さない");
+        }
+
+        [Test]
+        public void HideWindow_基底画面も開く前のフォーカスも無ければ閉じたウィンドウに選択を残さない()
+        {
+            var window = CreateWindow("A");
+            Manager.ShowWindow(window);
+            NextFrame();
+
+            Manager.HideWindow(window);
+            AdvanceSeconds(0f);
+            AdvanceSeconds(0.6f);
+
+            Assert.That(Selected, Is.Null);
+        }
+
+        [Test]
         public void EnterPersistentUIFocus_決定が押されている間はフォーカスを移さない()
         {
             var probe = new FakeSubmitProbe { IsSubmitHeld = true };

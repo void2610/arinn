@@ -150,6 +150,14 @@ manager.SwitchBase(battleView);
 ```
 
 フォーカスを動かさずに戻り先だけを差し替えたいときは `SetBaseFocusSource` を使う。
+画面を畳むときに、フォーカスを持たない次の画面（ノベルの本文など）へ移るなら `ReleaseBase` を呼ぶ。
+その画面が今の基底画面のときだけ外し、ウィンドウが開いていなければ、畳んだ画面に残った選択も捨てる。
+選択が残ると、決定や移動の入力が畳んだ画面の要素へ届き続ける。
+
+```csharp
+manager.ReleaseBase(characterSelectView);
+```
+
 ゲームのステート（`GameState` など）と基底画面の対応は、アプリ側で持つ。
 arinn はステートを知らない。
 

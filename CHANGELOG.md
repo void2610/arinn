@@ -10,7 +10,7 @@
 
 - `UIFocusManager`：ウィンドウのスタック、開く前のフォーカスの預かりと返却、フォーカスが消えたときの復帰。インスタンスとして生成でき、`Instance` はロケータとして残す
 - `WindowBase`：CanvasGroup で表示と入力の受付を切り替える基底クラス。`Open` / `Close` / `Toggle` で開閉し、閉じ始めた時点で入力を切る。既定要素と閉じるボタンはコードでも指定できる。`UIFocusManager.Instance` を使い、VContainer で注入されればそちらを優先する
-- `IFocusSource`：ウィンドウと基底画面に共通の、既定要素を返す窓口。`SwitchBase` / `SetBaseFocusSource` で基底画面を設定する
+- `IFocusSource`：ウィンドウと基底画面に共通の、既定要素を返す窓口。`SwitchBase` / `SetBaseFocusSource` で基底画面を設定する。`ReleaseBase` は、その画面が基底画面のときだけ外し、ウィンドウが無ければ外した画面に残った選択も捨てる（フォーカスを持たない次の画面へ選択を持ち越さない）
 - 常時表示 UI へのフォーカスの貸し借り（`EnterPersistentUIFocus` / `ExitPersistentUIFocus` / `TogglePersistentUIFocus`）
 - Cancel の部品（`TryCloseTopWindow` / `TryPopScope`）と、入力でウィンドウを開閉する `RegisterToggleAction`
 - 拡張点：`IInputScopeGate`（ゲームプレイ入力の停止）、`ISubmitHoldProbe`（決定の押下）、`IWindowTransition`（開閉の演出）

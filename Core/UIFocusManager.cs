@@ -114,6 +114,23 @@ namespace Void2610.Arinn
         public void SetBaseFocusSource(IFocusSource source) => BaseFocusSource = source;
 
         /// <summary>
+        /// source が基底画面のときだけ外す。ウィンドウも借用も無ければ、外した画面に残った選択と直前の選択も捨てる。
+        /// </summary>
+        public void ReleaseBase(IFocusSource source)
+        {
+            if (source == null || BaseFocusSource != source) return;
+            BaseFocusSource = null;
+            if (_scopes.Count == 0)
+            {
+                // 次の画面がフォーカスを持たないと、外した画面の要素に選択が残って決定や移動がそこへ届き続ける
+                ClearSelection();
+                return;
+            }
+            // 最初のウィンドウを開く前のフォーカスは外した画面のものなので、閉じたときにそこへ戻さない
+            if (_scopes[0].IsWindow) _scopes[0].PreviousFocus = null;
+        }
+
+        /// <summary>
         /// 常時表示 UI へフォーカスを借りる。借用のスコープとして一番上に積む。
         /// </summary>
         public void EnterPersistentUIFocus(GameObject element) => EnterPersistentUIFocus(element, element);
@@ -396,7 +413,21 @@ namespace Void2610.Arinn
                 FocusWhenActive(GetDefaultFocusElement(BaseFocusSource));
                 return;
             }
-            if (IsFocusable(previousFocus)) SetSelected(previousFocus);
+            if (IsFocusable(previousFocus))
+            {
+                SetSelected(previousFocus);
+                return;
+            }
+            // 戻り先が無ければ、閉じたウィンドウの要素に選択を残さない
+            ClearSelection();
+        }
+
+        private void ClearSelection()
+        {
+            _pendingFocus = null;
+            _lastSelected = null;
+            _focusLostSince = null;
+            if (EventSystem.current) EventSystem.current.SetSelectedGameObject(null);
         }
 
         /// <summary>
@@ -515,7 +546,7 @@ namespace Void2610.Arinn
         private sealed class FocusScope
         {
             public WindowBase Window { get; private set; }
-            public GameObject PreviousFocus { get; private set; }
+            public GameObject PreviousFocus { get; set; }
             public GameObject Owner { get; set; }
             // 破棄されたウィンドウを借用と取り違えないよう、種類は参照の有無ではなく作ったときに決める
             public bool IsWindow { get; private set; }

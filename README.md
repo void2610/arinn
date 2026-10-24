@@ -115,6 +115,7 @@ VContainer を使わない構成や、Presenter での繋ぎ方は[チュート�
 | `CloseAll` | すべて閉じて基底画面へ戻す |
 | `SwitchBase` | 基底画面を切り替える。ウィンドウをすべて閉じ、新しい基底画面の既定要素へ移す |
 | `SetBaseFocusSource` | 基底画面だけを差し替える。フォーカスは動かさない |
+| `ReleaseBase` | その画面が基底画面のときだけ外す。ウィンドウが無ければ、外した画面に残った選択も捨てる |
 | `EnterPersistentUIFocus`、`ExitPersistentUIFocus`、`TogglePersistentUIFocus` | 常時表示 UI へフォーカスを借りる、返す |
 | `RegisterToggleAction` | 入力（R3 の Observable）でウィンドウを開閉する。他のウィンドウが開いている間は開かない |
 | `SetInputScopeGate` | 最初のウィンドウが開いたときと最後のウィンドウが閉じたときに、ゲームプレイの入力を止める、戻す |
