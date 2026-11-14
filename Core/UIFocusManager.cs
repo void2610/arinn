@@ -131,6 +131,37 @@ namespace Void2610.Arinn
         }
 
         /// <summary>
+        /// 基底画面を一時的に source へ預ける（<see cref="SwitchBase"/> と同じく切り替える）。
+        /// 返り値を Dispose すると、source がまだ基底画面なら預ける前の基底画面へ戻す。預ける前に基底画面が無ければ source を外す。
+        /// 画面の上で流す掛け合いなど、終わったら下の画面の操作へ戻る一時的な画面に使う。
+        /// </summary>
+        public IDisposable BorrowBase(IFocusSource source)
+        {
+            var previous = BaseFocusSource;
+            SwitchBase(source);
+            return Disposable.Create(() => ReturnBase(source, previous));
+        }
+
+        private void ReturnBase(IFocusSource borrower, IFocusSource previous)
+        {
+            // 預けている間に別の画面へ切り替わっていれば、その画面を優先する
+            if (BaseFocusSource != borrower) return;
+            if (!UnityObjects.IsAlive(previous))
+            {
+                ReleaseBase(borrower);
+                return;
+            }
+            if (_scopes.Count == 0)
+            {
+                SwitchBase(previous);
+                return;
+            }
+            // 上にウィンドウがあれば閉じさせず、閉じたときに戻る先だけを差し替える
+            BaseFocusSource = previous;
+            if (_scopes[0].IsWindow) _scopes[0].PreviousFocus = null;
+        }
+
+        /// <summary>
         /// 常時表示 UI へフォーカスを借りる。借用のスコープとして一番上に積む。
         /// </summary>
         public void EnterPersistentUIFocus(GameObject element) => EnterPersistentUIFocus(element, element);

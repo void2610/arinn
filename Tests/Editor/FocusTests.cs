@@ -101,6 +101,75 @@ namespace Void2610.Arinn.Tests
         }
 
         [Test]
+        public void BorrowBase_返すと預ける前の基底画面の既定要素へ戻る()
+        {
+            var baseScreen = CreateBase("Base");
+            Manager.SwitchBase(baseScreen);
+            NextFrame();
+            var dialogue = CreateBase("Dialogue");
+
+            var borrow = Manager.BorrowBase(dialogue);
+            NextFrame();
+            Assert.That(Selected, Is.EqualTo(dialogue.Default));
+
+            borrow.Dispose();
+            NextFrame();
+            Assert.That(Manager.BaseFocusSource, Is.EqualTo(baseScreen));
+            Assert.That(Selected, Is.EqualTo(baseScreen.Default));
+        }
+
+        [Test]
+        public void BorrowBase_預けている間に基底画面が切り替わっていれば返しても戻さない()
+        {
+            var baseScreen = CreateBase("Base");
+            Manager.SwitchBase(baseScreen);
+            var dialogue = CreateBase("Dialogue");
+            var borrow = Manager.BorrowBase(dialogue);
+            var next = CreateBase("Next");
+            Manager.SwitchBase(next);
+            NextFrame();
+
+            borrow.Dispose();
+            NextFrame();
+
+            Assert.That(Manager.BaseFocusSource, Is.EqualTo(next));
+            Assert.That(Selected, Is.EqualTo(next.Default));
+        }
+
+        [Test]
+        public void BorrowBase_預ける前に基底画面が無ければ返すと外す()
+        {
+            var dialogue = CreateBase("Dialogue");
+            var borrow = Manager.BorrowBase(dialogue);
+            NextFrame();
+
+            borrow.Dispose();
+
+            Assert.That(Manager.BaseFocusSource, Is.Null);
+            Assert.That(Selected, Is.Null);
+        }
+
+        [Test]
+        public void BorrowBase_ウィンドウが開いていれば返しても閉じず閉じたときに預ける前の基底画面へ戻る()
+        {
+            var baseScreen = CreateBase("Base");
+            Manager.SwitchBase(baseScreen);
+            var dialogue = CreateBase("Dialogue");
+            var borrow = Manager.BorrowBase(dialogue);
+            NextFrame();
+            var window = CreateWindow("A");
+            Manager.ShowWindow(window);
+            NextFrame();
+
+            borrow.Dispose();
+            Assert.That(Manager.HasOpenWindows, Is.True);
+
+            Manager.HideWindow(window);
+            NextFrame();
+            Assert.That(Selected, Is.EqualTo(baseScreen.Default));
+        }
+
+        [Test]
         public void ReleaseBase_基底画面でなければ何もしない()
         {
             var current = CreateBase("Current");
