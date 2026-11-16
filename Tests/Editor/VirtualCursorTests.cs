@@ -183,5 +183,62 @@ namespace Void2610.Arinn.Tests
 
             Assert.That(moved, Is.EqualTo(1));
         }
+
+        [Test]
+        public void JaggedGridCursor_上下で移った行の右端までに列を詰める()
+        {
+            var columns = new[] { 3, 1, 2 };
+            using var cursor = new JaggedGridCursor(columns.Length, row => columns[row]);
+            cursor.SetPosition(new Vector2Int(2, 0));
+
+            Assert.That(cursor.TryMove(NavigationDirection.Down), Is.True);
+            Assert.That(cursor.Position, Is.EqualTo(new Vector2Int(0, 1)));
+            Assert.That(cursor.TryMove(NavigationDirection.Down), Is.True);
+            Assert.That(cursor.Position, Is.EqualTo(new Vector2Int(0, 2)));
+        }
+
+        [Test]
+        public void JaggedGridCursor_左右は行の列の中で動き端ではfalseを返す()
+        {
+            var columns = new[] { 2 };
+            using var cursor = new JaggedGridCursor(columns.Length, row => columns[row]);
+
+            Assert.That(cursor.TryMove(NavigationDirection.Right), Is.True);
+            Assert.That(cursor.Position, Is.EqualTo(new Vector2Int(1, 0)));
+            Assert.That(cursor.TryMove(NavigationDirection.Right), Is.False);
+            Assert.That(cursor.TryMove(NavigationDirection.Left), Is.True);
+            Assert.That(cursor.TryMove(NavigationDirection.Left), Is.False);
+        }
+
+        [Test]
+        public void JaggedGridCursor_列の無い行は飛ばす()
+        {
+            var columns = new[] { 1, 0, 1 };
+            using var cursor = new JaggedGridCursor(columns.Length, row => columns[row]);
+
+            Assert.That(cursor.TryMove(NavigationDirection.Down), Is.True);
+            Assert.That(cursor.Position, Is.EqualTo(new Vector2Int(0, 2)));
+        }
+
+        [Test]
+        public void JaggedGridCursor_skipsBlockedがfalseなら列の無い行の手前で止まる()
+        {
+            var columns = new[] { 1, 0, 1 };
+            using var cursor = new JaggedGridCursor(columns.Length, row => columns[row], skipsBlocked: false);
+
+            Assert.That(cursor.TryMove(NavigationDirection.Down), Is.False);
+            Assert.That(cursor.Position, Is.EqualTo(Vector2Int.zero));
+        }
+
+        [Test]
+        public void JaggedGridCursor_行が無ければ位置はマイナス1で動かない()
+        {
+            using var cursor = new JaggedGridCursor(0, _ => 1);
+
+            Assert.That(cursor.Position, Is.EqualTo(new Vector2Int(-1, -1)));
+            Assert.That(cursor.TryMove(NavigationDirection.Down), Is.False);
+            cursor.SetRows(2);
+            Assert.That(cursor.Position, Is.EqualTo(Vector2Int.zero));
+        }
     }
 }

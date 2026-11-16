@@ -638,8 +638,9 @@ Cancel は通常の経路のままなので、`TryPopScope` でウィンドウ�
 
 - **`GridCursor`**：格子状のマス。位置は (列, 行) で、左上が (0, 0)、行は下へ増える。止まれないマス（`isNavigable` が false）は飛ばして、その先で止まれるマスへ進む。`skipsBlocked: false` を渡すと、止まれないマスの手前で止まる（未解放のスロットの先へ飛ばしたくないとき）。
 - **`ListCursor`**：一列に並んだ項目。`isHorizontal` が true なら左右に並び、false なら上下に並ぶ。並びと直交する方向の入力は端として扱うので、手札の下に置いたボタンへ `Exit` で抜けられる。
+- **`JaggedGridCursor`**：行ごとに列の数が違う格子（行ごとに選べる語の数が違う文章の一覧など）。位置は (列, 行) で、列の数は `columnsOf` が行ごとに返す。上下で別の行へ移ると、列はその行の右端までに詰める。列の無い行は止まれない行として、`skipsBlocked` に従って飛ばすか手前で止まる。
 
-要素の数が変わったら `SetSize` か `SetCount` を呼ぶ。
+要素の数が変わったら `SetSize` か `SetCount`（`JaggedGridCursor` は `SetRows`）を呼ぶ。
 今の位置は範囲内へ収める。
 位置をコードから決めるなら `SetPosition` か `SetIndex` を使う（止まれない位置かどうかは見ない）。
 

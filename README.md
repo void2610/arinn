@@ -189,6 +189,7 @@ public override NavigationScope CreateNavigationScope() => base.CreateNavigation
 |---|---|
 | `GridCursor` | 格子。位置は (列, 行) で、左上が (0, 0)。`skipsBlocked: false` なら止まれないマスを飛び越えず手前で止まる |
 | `ListCursor` | 一列。並びと直交する方向の入力は端として扱う。`skipsBlocked` は `GridCursor` と同じ |
+| `JaggedGridCursor` | 行ごとに列の数が違う格子。上下で移った行の右端までに列を詰める。列の無い行は止まれない行として扱う |
 | `CursorResolver` | アンカー以外が選択されているときは `fallback`（既定は `SpatialResolver`）に任せる。重ねれば 1 画面に複数のカーソルを置ける。`returnsToAnchor: true` なら、何が選ばれていても方向入力でカーソルを動かしてアンカーへ戻す |
 | `IVirtualCursor`、`VirtualCursor` | 独自のカーソルを作るときの窓口と基底クラス |
 
